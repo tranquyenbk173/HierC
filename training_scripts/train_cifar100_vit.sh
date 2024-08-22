@@ -1,15 +1,15 @@
 #!/bin/bash
 
-for seed in 42 40 44
+for seed in 42
 do
 python -m torch.distributed.launch \
-        --nproc_per_node=8 \
+        --nproc_per_node=1 \
         --use_env main.py \
         cifar100_hideprompt_5e \
         --original_model vit_base_patch16_224 \
         --model vit_base_patch16_224 \
         --batch-size 24 \
-        --data-path ./datasets/ \
+        --data-path ../Z.Data/ \
         --output_dir ./output/cifar100_sup21k_multi_centroid_mlp_2_seed$seed \
         --epochs 20 \
         --sched constant \
@@ -18,10 +18,10 @@ python -m torch.distributed.launch \
         --lr 0.0005 
 done
 
-for seed in 42 40 44
+for seed in 42
 do
 python -m torch.distributed.launch \
-	--nproc_per_node=8 \
+	--nproc_per_node=1 \
 	--master_port='29501' \
 	--use_env main.py \
 	cifar100_hideprompt_5e \
@@ -29,7 +29,7 @@ python -m torch.distributed.launch \
 	--original_model vit_base_patch16_224 \
 	--batch-size 24 \
 	--epochs 50 \
-	--data-path ./datasets \
+	--data-path ../Z.Data/ \
 	--ca_lr 0.005 \
 	--crct_epochs 30 \
 	--seed $seed \

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-for seed in 42 40 44
+for seed in 42
 do
 python -m torch.distributed.launch \
-        --nproc_per_node=8 \
+        --nproc_per_node=1 \
         --master_port='29500' \
         --use_env main.py \
         imr_hideprompt_5e \
@@ -20,10 +20,10 @@ python -m torch.distributed.launch \
         --output_dir ./output/imr_vit_multi_centroid_mlp_2_seed$seed
 done
 
-for seed in 42 40 44
+for seed in 42
 do
 python -m torch.distributed.launch \
-        --nproc_per_node=8 \
+        --nproc_per_node=1 \
         --master_port='29505' \
         --use_env main.py \
         imr_hideprompt_5e \
