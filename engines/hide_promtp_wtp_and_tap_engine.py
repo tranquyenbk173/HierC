@@ -10,6 +10,7 @@ from typing import Iterable
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 import torch.distributed as dist
 import numpy as np
 
@@ -18,6 +19,7 @@ from timm.optim import create_optimizer
 from timm.scheduler import create_scheduler
 from torch import optim
 import utils
+import tree_e
 from torch.distributions.multivariate_normal import MultivariateNormal
 
 
@@ -37,8 +39,10 @@ def train_one_epoch(model: torch.nn.Module, original_model: torch.nn.Module,
     header = f'Train: Epoch[{epoch + 1:{int(math.log10(args.epochs)) + 1}}/{args.epochs}]'
 
     for input, target in metric_logger.log_every(data_loader, args.print_freq, header):
+        # input = torch.cat([input[0], input[1]], dim=0)
         input = input.to(device, non_blocking=True)
         target = target.to(device, non_blocking=True)
+        bsz = len(target)
 
         with torch.no_grad():
             if original_model is not None:
@@ -70,9 +74,17 @@ def train_one_epoch(model: torch.nn.Module, original_model: torch.nn.Module,
             not_mask = torch.tensor(not_mask, dtype=torch.int64).to(device)
             logits = logits.index_fill(dim=1, index=not_mask, value=float('-inf'))
 
+        # logits, _ = torch.split(logits, [bsz, bsz], dim=0)
         loss = criterion(logits, target)  # base criterion (CrossEntropyLoss)
+        
         # TODO add contrastive loss
-        loss += orth_loss(output['pre_logits'], target, device, args)
+        pre_logits = output['pre_logits']
+        # pre_logits, pre_logits2 = torch.split(pre_logits, [bsz, bsz], dim=0)
+        loss += orth_loss(pre_logits, target, device, args)
+        
+        # TODO add cluster loss
+        loss += cluster_loss(pre_logits, target, device, args)
+        
         acc1, acc5 = accuracy(logits, target, topk=(1, 5))
 
         if not math.isfinite(loss.item()):
@@ -217,6 +229,18 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
     global cls_cov
     cls_mean = dict()
     cls_cov = dict()
+    
+    global old_data
+    global old_labels
+    old_data = torch.empty(0).to(device)
+    old_labels = torch.empty(0).to(device)
+    
+    global current_llist
+    
+    if args.dataset == 'Split-CIFAR100':
+        if args.order == 1:
+            import taxanomy.cifar100.order1.taxanomy as taxonomy
+            
 
     for task_id in range(args.num_tasks):
         # Create new optimizer for each task to clear optimizer status
@@ -302,6 +326,8 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
                         model.e_prompt.prompt_key[cur_idx] = model.e_prompt.prompt_key[prev_idx]
                         optimizer.param_groups[0]['params'] = model.parameters()
 
+        current_taxonomy = taxonomy.T[task_id+1]
+        current_llist = tree_e.leaf_group_to_llist(current_taxonomy)
         for epoch in range(args.epochs):
             train_stats = train_one_epoch(model=model, original_model=original_model, criterion=criterion,
                                             data_loader=data_loader[task_id]['train'], optimizer=optimizer,
@@ -431,6 +457,9 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
 
     for i in range(task_id):
         crct_num += len(class_mask[i])
+        
+    latest_data = []
+    latest_labels = []
 
     # TODO: efficiency may be improved by encapsulating sampled data into Datasets class and using distributed sampler.
     for epoch in range(run_epochs):
@@ -456,18 +485,26 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
 
                     sampled_label.extend([c_id] * num_sampled_pcls)
 
+                    if i == task_id:
+                        latest_data.append(sampled_data_single)
+                        latest_labels.extend([c_id] * num_sampled_pcls)
+
         elif args.ca_storage_efficient_method == 'multi-centroid':
             for i in range(task_id + 1):
-               for c_id in class_mask[i]:
-                   for cluster in range(len(cls_mean[c_id])):
-                       mean = cls_mean[c_id][cluster]
-                       var = cls_cov[c_id][cluster]
-                       if var.mean() == 0:
-                           continue
-                       m = MultivariateNormal(mean.float(), (torch.diag(var) + 1e-4 * torch.eye(mean.shape[0]).to(mean.device)).float())
-                       sampled_data_single = m.sample(sample_shape=(num_sampled_pcls,))
-                       sampled_data.append(sampled_data_single)
-                       sampled_label.extend([c_id] * num_sampled_pcls)
+                for c_id in class_mask[i]:
+                    for cluster in range(len(cls_mean[c_id])):
+                        mean = cls_mean[c_id][cluster]
+                        var = cls_cov[c_id][cluster]
+                        if var.mean() == 0:
+                            continue
+                        m = MultivariateNormal(mean.float(), (torch.diag(var) + 1e-4 * torch.eye(mean.shape[0]).to(mean.device)).float())
+                        sampled_data_single = m.sample(sample_shape=(num_sampled_pcls,))
+                        sampled_data.append(sampled_data_single)
+                        sampled_label.extend([c_id] * num_sampled_pcls)
+                        
+                        if i == task_id:
+                            latest_data.append(sampled_data_single)
+                            latest_labels.extend([c_id] * num_sampled_pcls)
         else:
             raise NotImplementedError
 
@@ -475,6 +512,11 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
         sampled_data = torch.cat(sampled_data, dim=0).float().to(device)
         sampled_label = torch.tensor(sampled_label).long().to(device)
         print(sampled_data.shape)
+        
+        latest_data = torch.cat(latest_data, dim=0).float().to(device)
+        latest_labels = torch.cat(latest_labels).long().to(device)
+        old_data = torch.cat((old_data, latest_data), dim=0).to(device)
+        old_labels = torch.cat((old_labels, latest_labels), dim=0).to(device)
 
         inputs = sampled_data
         targets = sampled_label
@@ -482,7 +524,6 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
         sf_indexes = torch.randperm(inputs.size(0))
         inputs = inputs[sf_indexes]
         targets = targets[sf_indexes]
-        # print(targets)
 
         for _iter in range(crct_num):
             inp = inputs[_iter * num_sampled_pcls:(_iter + 1) * num_sampled_pcls]
@@ -524,7 +565,6 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
         print("Averaged stats:", metric_logger)
         scheduler.step()
 
-
 def orth_loss(features, targets, device, args):
     if cls_mean:
         # orth loss of this batch
@@ -538,11 +578,73 @@ def orth_loss(features, targets, device, args):
         M = torch.cat([sample_mean, features], dim=0)
         sim = torch.matmul(M, M.t()) / 0.8
         loss = torch.nn.functional.cross_entropy(sim, torch.range(0, sim.shape[0] - 1).long().to(device))
-        # print(loss)
         return args.reg * loss
     else:
         sim = torch.matmul(features, features.t()) / 0.8
         loss = torch.nn.functional.cross_entropy(sim, torch.range(0, sim.shape[0] - 1).long().to(device))
         return args.reg * loss
         # return 0.
+        
+
+def supervised_contrastive_loss(features, labels, temperature=0.1):
+    # Normalize features
+    features = F.normalize(features, p=2, dim=1)
+    
+    # Compute similarity matrix
+    sim_matrix = torch.matmul(features, features.t()) / temperature
+    
+    # Mask to remove self-comparisons
+    mask = torch.eye(labels.size(0), dtype=torch.bool, device=features.device)
+    
+    # Create label mask for positive pairs
+    label_mask = labels.unsqueeze(1) == labels.unsqueeze(0)
+    
+    # Exclude self-comparisons
+    positive_mask = label_mask & ~mask
+    if positive_mask.sum() == 0:
+        return 0
+    
+    # Compute logits and apply log-softmax
+    logits = sim_matrix - torch.max(sim_matrix, dim=1, keepdim=True)[0]
+    log_prob = F.log_softmax(logits, dim=1)
+    
+    # Compute the supervised contrastive loss
+    loss = -log_prob[positive_mask].sum() / positive_mask.sum()
+    
+    return loss
+
+def subsup_loss(features, labels, label_sets, temperature=0.1):
+    total_loss = 0.0
+    num_sets = len(label_sets)
+    
+    for label_subset in label_sets:
+        # Select features and labels for the current subset
+        mask = torch.isin(labels, torch.tensor(label_subset, device=features.device))
+        subset_features = features[mask]
+        subset_labels = labels[mask]
+        
+        # Compute the supervised contrastive loss for the subset
+        if len(subset_features) > 1:
+            loss = supervised_contrastive_loss(subset_features, subset_labels, temperature)
+            total_loss += loss
+
+    return total_loss / num_sets
+
+def cluster_loss(features, targets, device, args):
+    
+    old_bs = args.batch_size * 5
+    sf_indexes = torch.randperm(old_data.size(0))
+    old_inputs = old_data[sf_indexes]
+    old_inputs =  old_inputs[:old_bs]
+    old_targets = old_labels[sf_indexes]
+    old_targets = old_targets[:old_bs]
+    
+    features = torch.cat((features, old_inputs), dim=0)
+    targets = torch.cat((targets, old_targets), dim=0)
+    
+    sub_loss = subsup_loss(features,  targets, current_llist)
+    glob_loss =  supervised_contrastive_loss(features, targets)
+        
+    return args.reg_glob * glob_loss + args.reg_sub * sub_loss
+        
 

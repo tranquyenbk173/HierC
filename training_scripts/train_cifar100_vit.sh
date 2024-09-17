@@ -1,28 +1,28 @@
 #!/bin/bash
 
-for seed in 42
-do
-python -m torch.distributed.launch \
-        --nproc_per_node=1 \
-        --use_env main.py \
-        cifar100_hideprompt_5e \
-        --original_model vit_base_patch16_224 \
-        --model vit_base_patch16_224 \
-        --batch-size 24 \
-        --data-path ../Z.Data/ \
-        --output_dir ./output/cifar100_sup21k_multi_centroid_mlp_2_seed$seed \
-        --epochs 20 \
-        --sched constant \
-        --seed $seed \
-        --train_inference_task_only \
-        --lr 0.0005 
-done
+# for seed in 42
+# do
+# python -m torch.distributed.launch \
+#         --nproc_per_node=1 \
+#         --use_env main.py \
+#         cifar100_hideprompt_5e \
+#         --original_model vit_base_patch16_224 \
+#         --model vit_base_patch16_224 \
+#         --batch-size 24 \
+#         --data-path ../Z.Data/ \
+#         --output_dir ./output/cifar100_sup21k_multi_centroid_mlp_2_seed$seed \
+#         --epochs 20 \
+#         --sched constant \
+#         --seed $seed \
+#         --train_inference_task_only \
+#         --lr 0.0005 
+# done
 
-for seed in 42
+for seed in 422
 do
-python -m torch.distributed.launch \
+CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
 	--nproc_per_node=1 \
-	--master_port='29501' \
+	--master_port='29502' \
 	--use_env main.py \
 	cifar100_hideprompt_5e \
 	--model vit_base_patch16_224 \
@@ -35,9 +35,12 @@ python -m torch.distributed.launch \
 	--seed $seed \
 	--prompt_momentum 0.01 \
 	--reg 0.1 \
+	--reg_sub 0.1 \
+	--reg_glob 0.05 \
+	--order 1 \
 	--length 5 \
 	--sched step \
 	--larger_prompt_lr \
-	--trained_original_model ./output/cifar100_sup21k_multi_centroid_mlp_2_seed$seed \
+	--trained_original_model ./output/cifar100_sup21k_multi_centroid_mlp_2_seed42 \
 	--output_dir ./output/cifar100_vit_pe_seed$seed
 done

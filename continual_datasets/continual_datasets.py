@@ -5,10 +5,8 @@ import pathlib
 from pathlib import Path
 
 from typing import Any, Tuple
-
 import glob
 from shutil import move, rmtree
-
 import numpy as np
 
 import torch
@@ -17,7 +15,6 @@ from torchvision.datasets.utils import download_url, check_integrity, verify_str
 
 import PIL
 from PIL import Image
-
 from .dataset_utils import read_image_file, read_label_file
 
 class MNIST_RGB(datasets.MNIST):

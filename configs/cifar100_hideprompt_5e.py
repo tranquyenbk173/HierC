@@ -71,7 +71,7 @@ def get_args_parser(subparsers):
     # Data parameters
     subparsers.add_argument('--data-path', default='/local_datasets/', type=str, help='dataset path')
     subparsers.add_argument('--dataset', default='Split-CIFAR100', type=str, help='dataset name')
-    subparsers.add_argument('--shuffle', default=False, help='shuffle the data order')
+    subparsers.add_argument('--shuffle', default=True, help='shuffle the data order')
     subparsers.add_argument('--output_dir', default='./output', help='path where to save, empty for no saving')
     subparsers.add_argument('--device', default='cuda', help='device to use for training / testing')
     subparsers.add_argument('--seed', default=42, type=int)
@@ -146,6 +146,9 @@ def get_args_parser(subparsers):
     subparsers.add_argument('--trained_original_model', default='', type=str)
     subparsers.add_argument('--prompt_momentum', default=0.01, type=float)
     subparsers.add_argument('--reg', default=0.01, type=float)
+    subparsers.add_argument('--reg_glob', default=0.01, type=float)
+    subparsers.add_argument('--reg_sub', default=0.01, type=float)
+    subparsers.add_argument('--order', default=1, type=int)
     subparsers.add_argument('--not_train_ca', action='store_true')
     subparsers.add_argument('--ca_epochs', default=30, type=int)
     subparsers.add_argument('--ca_storage_efficient_method', default='multi-centroid', choices=['covariance', 'multi-centroid', 'variance'], type=str)

@@ -21,6 +21,14 @@ class Lambda(transforms.Lambda):
 
     def __call__(self, img):
         return self.lambd(img, self.nb_classes)
+    
+class TwoCropTransform:
+    """Create two crops of the same image"""
+    def __init__(self, transform):
+        self.transform = transform
+
+    def __call__(self, x):
+        return [self.transform(x), self.transform(x)]
 
 
 def target_transform(x, nb_classes):
@@ -211,6 +219,8 @@ def get_dataset(dataset, transform_train, transform_val, args, target_transform=
 
 
 def split_single_dataset(dataset_train, dataset_val, args):
+    # print(dataset_train.label)
+    # exit()
     nb_classes = len(dataset_val.classes)
     # TODO
     # assert nb_classes % args.num_tasks == 0
@@ -230,8 +240,13 @@ def split_single_dataset(dataset_train, dataset_val, args):
         train_split_indices = []
         test_split_indices = []
 
-        scope = labels[:classes_per_task]
-        labels = labels[classes_per_task:]
+        # scope = labels[:classes_per_task]
+        # labels = labels[classes_per_task:]
+        if args.dataset == 'Split-CIFAR100':
+            if args.order == 1:
+                import taxanomy.cifar100.order1.mapID as mapID
+                
+                scope = mapID.class_order[i]
 
         mask.append(scope)
         for k in scope:
@@ -248,6 +263,10 @@ def split_single_dataset(dataset_train, dataset_val, args):
         subset_train, subset_val = Subset(dataset_train, train_split_indices), Subset(dataset_val, test_split_indices)
 
         split_datasets.append([subset_train, subset_val])
+        
+        # print('mask', mask)
+        # print('target_task_map', target_task_map)
+    # exit()
 
     return split_datasets, mask, target_task_map
 
