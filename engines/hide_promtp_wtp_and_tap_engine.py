@@ -240,6 +240,12 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
     if args.dataset == 'Split-CIFAR100':
         if args.order == 1:
             import taxanomy.cifar100.order1.taxanomy as taxonomy
+    elif args.dataset == 'Split-Imagenet-R':
+        if args.order == 1:
+            import taxanomy.imgR.order1.taxanomy as taxonomy
+    else:
+        print('Have not been supported')   
+        exit() 
             
 
     for task_id in range(args.num_tasks):

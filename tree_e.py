@@ -101,6 +101,17 @@ cifar100 = {
     99: 'worm'
 }
 
+imr = {0: 'goldfish', 
+       1: 'great_white_shark', 
+       2: 'hammerhead', 
+       3: 'stingray', 
+       4: 'hen', 
+       5: 'ostrich', 
+       6: 'goldfinch', 
+       7: 'junco', 
+       8: 'bald_eagle', 
+       9: 'vulture', 10: 'newt', 11: 'axolotl', 12: 'tree_frog', 13: 'iguana', 14: 'African_chameleon', 15: 'cobra', 16: 'scorpion', 17: 'tarantula', 18: 'centipede', 19: 'peacock', 20: 'lorikeet', 21: 'hummingbird', 22: 'toucan', 23: 'duck', 24: 'goose', 25: 'black_swan', 26: 'koala', 27: 'jellyfish', 28: 'snail', 29: 'lobster', 30: 'hermit_crab', 31: 'flamingo', 32: 'american_egret', 33: 'pelican', 34: 'king_penguin', 35: 'grey_whale', 36: 'killer_whale', 37: 'sea_lion', 38: 'chihuahua', 39: 'shih_tzu', 40: 'afghan_hound', 41: 'basset_hound', 42: 'beagle', 43: 'bloodhound', 44: 'italian_greyhound', 45: 'whippet', 46: 'weimaraner', 47: 'yorkshire_terrier', 48: 'boston_terrier', 49: 'scottish_terrier', 50: 'west_highland_white_terrier', 51: 'golden_retriever', 52: 'labrador_retriever', 53: 'cocker_spaniels', 54: 'collie', 55: 'border_collie', 56: 'rottweiler', 57: 'german_shepherd_dog', 58: 'boxer', 59: 'french_bulldog', 60: 'saint_bernard', 61: 'husky', 62: 'dalmatian', 63: 'pug', 64: 'pomeranian', 65: 'chow_chow', 66: 'pembroke_welsh_corgi', 67: 'toy_poodle', 68: 'standard_poodle', 69: 'timber_wolf', 70: 'hyena', 71: 'red_fox', 72: 'tabby_cat', 73: 'leopard', 74: 'snow_leopard', 75: 'lion', 76: 'tiger', 77: 'cheetah', 78: 'polar_bear', 79: 'meerkat', 80: 'ladybug', 81: 'fly', 82: 'bee', 83: 'ant', 84: 'grasshopper', 85: 'cockroach', 86: 'mantis', 87: 'dragonfly', 88: 'monarch_butterfly', 89: 'starfish', 90: 'wood_rabbit', 91: 'porcupine', 92: 'fox_squirrel', 93: 'beaver', 94: 'guinea_pig', 95: 'zebra', 96: 'pig', 97: 'hippopotamus', 98: 'bison', 99: 'gazelle', 100: 'llama', 101: 'skunk', 102: 'badger', 103: 'orangutan', 104: 'gorilla', 105: 'chimpanzee', 106: 'gibbon', 107: 'baboon', 108: 'panda', 109: 'eel', 110: 'clown_fish', 111: 'puffer_fish', 112: 'accordion', 113: 'ambulance', 114: 'assault_rifle', 115: 'backpack', 116: 'barn', 117: 'wheelbarrow', 118: 'basketball', 119: 'bathtub', 120: 'lighthouse', 121: 'beer_glass', 122: 'binoculars', 123: 'birdhouse', 124: 'bow_tie', 125: 'broom', 126: 'bucket', 127: 'cauldron', 128: 'candle', 129: 'cannon', 130: 'canoe', 131: 'carousel', 132: 'castle', 133: 'mobile_phone', 134: 'cowboy_hat', 135: 'electric_guitar', 136: 'fire_engine', 137: 'flute', 138: 'gasmask', 139: 'grand_piano', 140: 'guillotine', 141: 'hammer', 142: 'harmonica', 143: 'harp', 144: 'hatchet', 145: 'jeep', 146: 'joystick', 147: 'lab_coat', 148: 'lawn_mower', 149: 'lipstick', 150: 'mailbox', 151: 'missile', 152: 'mitten', 153: 'parachute', 154: 'pickup_truck', 155: 'pirate_ship', 156: 'revolver', 157: 'rugby_ball', 158: 'sandal', 159: 'saxophone', 160: 'school_bus', 161: 'schooner', 162: 'shield', 163: 'soccer_ball', 164: 'space_shuttle', 165: 'spider_web', 166: 'steam_locomotive', 167: 'scarf', 168: 'submarine', 169: 'tank', 170: 'tennis_ball', 171: 'tractor', 172: 'trombone', 173: 'vase', 174: 'violin', 175: 'military_aircraft', 176: 'wine_bottle', 177: 'ice_cream', 178: 'bagel', 179: 'pretzel', 180: 'cheeseburger', 181: 'hotdog', 182: 'cabbage', 183: 'broccoli', 184: 'cucumber', 185: 'bell_pepper', 186: 'mushroom', 187: 'Granny_Smith', 188: 'strawberry', 189: 'lemon', 190: 'pineapple', 191: 'banana', 192: 'pomegranate', 193: 'pizza', 194: 'burrito', 195: 'espresso', 196: 'volcano', 197: 'baseball_player', 198: 'scuba_diver', 199: 'acorn'}
+
 
 def extract_leaf_groups(taxonomy, parent_category=None):
     """
@@ -130,7 +141,8 @@ def extract_leaf_groups(taxonomy, parent_category=None):
 
 def ID_to_name(ID_2D_list, map):
     label_2D_list = [[map[name] for name in sublist] for sublist in ID_2D_list]
-    return label_2D_list
+    one_d_list = [item for sublist in label_2D_list for item in sublist]
+    return one_d_list #label_2D_list
 
 def name_to_ID(names_2D_list, dataset):
     label_to_ID = {label: ID for ID, label in dataset.items()}
@@ -155,18 +167,24 @@ def leaf_group_to_llist(taxonomy, dataset=cifar100):
     return llist
 
 if __name__ == '__main__':
-    ID = [[42, 41, 91, 9, 65, 50, 1, 70, 15, 78], 
-          [73, 10, 55, 56, 72, 45, 48, 92, 76, 37],
-          [30, 21, 32, 96, 80, 49, 83, 26, 87, 33],
-          [8, 47, 59, 63, 74, 44, 98, 52, 85, 12],
-          [36, 23, 39, 40, 18, 66, 61, 60, 7, 34],
-          [99, 46, 2, 51, 16, 38, 58, 68, 22, 62],
-          [24, 5, 6, 67, 82, 19, 79, 43, 90, 20],
-          [0, 95, 57, 93, 53, 89, 25, 71, 84, 77],
-          [64, 29, 27, 88, 97, 4, 54, 75, 11, 69],
-          [86, 13, 17, 28, 31, 35, 94, 3, 14, 81]]
-    kk = ID_to_name(ID, cifar100)
-    print(kk)
+    ID = [[66, 187, 101, 193, 111, 121, 13, 2, 64, 44, 136, 170, 128, 76, 158, 167, 45, 130, 30, 3], 
+               [159, 15, 42, 126, 186, 162, 47, 110, 5, 194, 37, 122, 12, 36, 153, 69, 61, 195, 32, 172], 
+               [171, 60, 10, 144, 160, 52, 125, 106, 73, 113, 105, 95, 103, 145, 43, 0, 161, 192, 16, 80], 
+               [102, 38, 156, 176, 135, 78, 115, 19, 14, 177, 146, 179, 65, 84, 165, 46, 104, 79, 54, 196], 
+               [85, 118, 109, 133, 142, 33, 18, 140, 123, 175, 63, 83, 148, 100, 155, 72, 27, 184, 112, 51], 
+               [174, 4, 29, 183, 99, 98, 131, 124, 198, 134, 178, 120, 34, 48, 169, 138, 149, 132, 127, 21], 
+               [81, 77, 9, 82, 164, 119, 89, 68, 53, 90, 94, 41, 93, 116, 199, 157, 25, 180, 147, 74], 
+               [58, 152, 17, 49, 92, 75, 141, 20, 96, 31, 137, 117, 11, 67, 88, 91, 24, 97, 182, 190], 
+               [86, 181, 39, 168, 87, 185, 40, 1, 71, 150, 114, 56, 107, 191, 166, 50, 143, 197, 154, 129], 
+               [59, 55, 23, 7, 8, 108, 151, 22, 139, 173, 26, 188, 35, 57, 62, 70, 189, 6, 28, 163]]
+    
+    for i in range(len(ID)):
+        ids = ID[:i+1]
+        # print(ids)
+        print(i, '-'*50)
+        # exit()
+        kk = ID_to_name(ids, imr)
+        print(f"T{i}={kk}")
 
     # # Example taxonomy
     # taxonomy = {

@@ -664,6 +664,8 @@ class Imagenet_R(torch.utils.data.Dataset):
             fpath = self.fpath + '/test'
 
         self.data = datasets.ImageFolder(fpath, transform=transform)
+        # print(self.data.classes)
+        # exit()
 
     def split(self):
         train_folder = self.fpath + '/train'

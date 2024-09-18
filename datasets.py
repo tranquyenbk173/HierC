@@ -211,6 +211,9 @@ def get_dataset(dataset, transform_train, transform_val, args, target_transform=
     elif dataset == 'Imagenet-R':
         dataset_train = Imagenet_R(args.data_path, train=True, download=True, transform=transform_train).data
         dataset_val = Imagenet_R(args.data_path, train=False, download=True, transform=transform_val).data
+        # d_train = Imagenet_R(args.data_path, train=True, download=True, transform=transform_train)
+        # print(d_train.label)
+        # exit()
 
     else:
         raise ValueError('Dataset {} not found.'.format(dataset))
@@ -231,6 +234,8 @@ def split_single_dataset(dataset_train, dataset_val, args):
     split_datasets = list()
     mask = list()
 
+    # print(args.shuffle)
+    # exit()
     if args.shuffle:
         random.shuffle(labels)
 
@@ -240,13 +245,21 @@ def split_single_dataset(dataset_train, dataset_val, args):
         train_split_indices = []
         test_split_indices = []
 
-        # scope = labels[:classes_per_task]
-        # labels = labels[classes_per_task:]
+        
         if args.dataset == 'Split-CIFAR100':
             if args.order == 1:
                 import taxanomy.cifar100.order1.mapID as mapID
                 
                 scope = mapID.class_order[i]
+        elif args.dataset == 'Split-Imagenet-R':
+            if args.order == 1:
+                import taxanomy.imgR.order1.mapID as mapID
+                scope = mapID.class_order[i]
+        else:
+            print('Have not been supported')   
+            exit() 
+            scope = labels[:classes_per_task]
+            labels = labels[classes_per_task:]
 
         mask.append(scope)
         for k in scope:
@@ -264,8 +277,8 @@ def split_single_dataset(dataset_train, dataset_val, args):
 
         split_datasets.append([subset_train, subset_val])
         
-        # print('mask', mask)
-        # print('target_task_map', target_task_map)
+    # print('mask', mask)
+    # # print('target_task_map', target_task_map)
     # exit()
 
     return split_datasets, mask, target_task_map
