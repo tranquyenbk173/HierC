@@ -43,5 +43,5 @@ CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
 	--sched step \
 	--larger_prompt_lr \
 	--trained_original_model ./output/cifar100_sup21k_multi_centroid_mlp_2_seed42 \
-	--output_dir ./output/cifar100_vit_pe_seed$seed_reg$reg_regsub$reg_regsub_regglob$reg_glob_prompt_momentum$prompt_momentum_lr$lr
+	--output_dir ./output/cifar100_vit_pe_seed$seed-_reg$reg-regsub$reg_regsub-regglob$reg_glob-prompt_momentum$prompt_momentum-lr$lr
 done
