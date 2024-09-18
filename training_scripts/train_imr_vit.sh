@@ -20,11 +20,18 @@ python -m torch.distributed.launch \
         --output_dir ./output/imr_vit_multi_centroid_mlp_2_seed$seed
 done
 
+reg=0.5
+reg_sub=0.1
+reg_glob=0.05
+prompt_momentum=0.01
+lr=0.03
+port='29605'
+
 for seed in 42
 do
 python -m torch.distributed.launch \
         --nproc_per_node=1 \
-        --master_port='29505' \
+        --master_port=$port \
         --use_env main.py \
         imr_hideprompt_5e \
         --model vit_base_patch16_224 \
@@ -32,16 +39,20 @@ python -m torch.distributed.launch \
         --batch-size 24 \
         --epochs 150 \
         --data-path ./datasets \
+        --lr $lr \
         --ca_lr 0.005 \
         --crct_epochs 30 \
 	--sched cosine \
         --seed $seed \
-	--prompt_momentum 0.01 \
-	--reg 0.5 \
+	--prompt_momentum $prompt_momentum \
+	--reg $reg \
+	--reg_sub $reg_sub \
+	--reg_glob $reg_glob \
+        --order 1 \
 	--length 20 \
         --larger_prompt_lr \
         --trained_original_model ./output/imr_vit_multi_centroid_mlp_2_seed$seed \
-	--output_dir ./output/imr_vit_pe_seed$seed
+	--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}
 done
 
 
