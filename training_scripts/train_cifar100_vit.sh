@@ -30,17 +30,18 @@ CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
 	--batch-size 24 \
 	--epochs 50 \
 	--data-path ../Z.Data/ \
+	--lr 0.03 \
 	--ca_lr 0.005 \
 	--crct_epochs 30 \
 	--seed $seed \
 	--prompt_momentum 0.01 \
 	--reg 0.1 \
-	--reg_sub 0.1 \
+	--reg_sub 0.2 \
 	--reg_glob 0.05 \
 	--order 1 \
 	--length 5 \
 	--sched step \
 	--larger_prompt_lr \
 	--trained_original_model ./output/cifar100_sup21k_multi_centroid_mlp_2_seed42 \
-	--output_dir ./output/cifar100_vit_pe_seed$seed
+	--output_dir ./output/cifar100_vit_pe_seed$seed_reg$reg_regsub$reg_regsub_regglob$reg_glob_prompt_momentum$prompt_momentum_lr$lr
 done

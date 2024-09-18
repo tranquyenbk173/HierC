@@ -513,10 +513,10 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
         sampled_label = torch.tensor(sampled_label).long().to(device)
         print(sampled_data.shape)
         
-        latest_data = torch.cat(latest_data, dim=0).float().to(device)
-        latest_labels = torch.cat(latest_labels).long().to(device)
-        old_data = torch.cat((old_data, latest_data), dim=0).to(device)
-        old_labels = torch.cat((old_labels, latest_labels), dim=0).to(device)
+        # latest_data = torch.cat(latest_data, dim=0).float().to(device)
+        # latest_labels = torch.cat(latest_labels).long().to(device)
+        old_data = sampled_data.detach().clone() #torch.cat((old_data, latest_data), dim=0).to(device)
+        old_labels = sampled_label.detach().clone() #torch.cat((old_labels, latest_labels), dim=0).to(device)
 
         inputs = sampled_data
         targets = sampled_label
