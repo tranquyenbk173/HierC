@@ -255,9 +255,13 @@ def split_single_dataset(dataset_train, dataset_val, args):
             if args.order == 1:
                 import taxanomy.imgR.order1.mapID as mapID
                 scope = mapID.class_order[i]
+        elif args.dataset == 'Split-CUB200':
+            if args.order == 1:
+                import taxanomy.CUB.order1.mapID as mapID
+                scope = mapID.class_order[i]
         else:
             print('Have not been supported')   
-            exit() 
+            # exit() 
             scope = labels[:classes_per_task]
             labels = labels[classes_per_task:]
 

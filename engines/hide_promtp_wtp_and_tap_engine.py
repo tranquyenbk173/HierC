@@ -243,6 +243,9 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
     elif args.dataset == 'Split-Imagenet-R':
         if args.order == 1:
             import taxanomy.imgR.order1.taxanomy as taxonomy
+    elif args.dataset == 'Split-CUB200':
+        if args.order == 1:
+            import taxanomy.CUB.order1.taxanomy as taxonomy
     else:
         print('Have not been supported')   
         exit() 
@@ -333,7 +336,7 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
                         optimizer.param_groups[0]['params'] = model.parameters()
 
         current_taxonomy = taxonomy.T[task_id+1]
-        current_llist = tree_e.leaf_group_to_llist(current_taxonomy)
+        current_llist = tree_e.leaf_group_to_llist(current_taxonomy, dataset_name=args.dataset)
         for epoch in range(args.epochs):
             train_stats = train_one_epoch(model=model, original_model=original_model, criterion=criterion,
                                             data_loader=data_loader[task_id]['train'], optimizer=optimizer,

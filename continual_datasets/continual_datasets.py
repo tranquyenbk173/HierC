@@ -427,10 +427,10 @@ class CUB200(torch.utils.data.Dataset):
                 download_url(self.url, root, filename=self.filename)
 
         if not os.path.exists(os.path.join(root, 'CUB_200_2011')):
-            import zipfile
-            zip_ref = zipfile.ZipFile(fpath, 'r')
-            zip_ref.extractall(root)
-            zip_ref.close()
+            # import zipfile
+            # zip_ref = zipfile.ZipFile(fpath, 'r')
+            # zip_ref.extractall(root)
+            # zip_ref.close()
 
             import tarfile
             tar_ref = tarfile.open(os.path.join(root, 'CUB_200_2011.tgz'), 'r')
@@ -438,6 +438,9 @@ class CUB200(torch.utils.data.Dataset):
             tar_ref.close()
 
             self.split()
+            
+        # if not os.path.exists(os.path.join(root, 'CUB_200_2011/train')):
+        # self.split()
         
         if self.train:
             fpath = os.path.join(root, 'CUB_200_2011', 'train')
@@ -445,6 +448,7 @@ class CUB200(torch.utils.data.Dataset):
         else:
             fpath = os.path.join(root, 'CUB_200_2011', 'test')
 
+        # print(fpath)
         self.data = datasets.ImageFolder(fpath, transform=transform)
 
     def split(self):
@@ -466,10 +470,13 @@ class CUB200(torch.utils.data.Dataset):
             with open(train_test_split, 'r') as f:
                 i = 0
                 for line in f:
+                    print('Processing', line)
                     image_path = image_paths[i]
                     image_path = image_path.replace('\n', '').split(' ')[-1]
+                    # print(image_path)
+                    # exit()
                     class_name = image_path.split('/')[0]
-                    src = self.root + 'CUB_200_2011/images/' + class_name
+                    src = self.root + 'CUB_200_2011/images/' + image_path #class_name
 
                     if line.split(' ')[-1].replace('\n', '') == '1':
                         if not os.path.exists(train_folder + '/' + class_name):
@@ -480,8 +487,13 @@ class CUB200(torch.utils.data.Dataset):
                             os.mkdir(test_folder + '/' + class_name)
                         dst = test_folder + '/' + image_path
                     
+                    # print(src)
+                    # print(dst)
                     move(src, dst)
                     i += 1
+                    
+        print('Done - spliting')
+        # exit()s
 
 class TinyImagenet(torch.utils.data.Dataset):
     def __init__(self, root, train=True, transform=None, target_transform=None, download=False):        
