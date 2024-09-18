@@ -22,7 +22,7 @@ for seed in 422
 do
 CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
 	--nproc_per_node=1 \
-	--master_port='29502' \
+	--master_port='29503' \
 	--use_env main.py \
 	cifar100_hideprompt_5e \
 	--model vit_base_patch16_224 \
@@ -34,9 +34,9 @@ CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
 	--ca_lr 0.005 \
 	--crct_epochs 30 \
 	--seed $seed \
-	--prompt_momentum 0.01 \
-	--reg 0.1 \
-	--reg_sub 0.2 \
+	--prompt_momentum 0.0001 \
+	--reg 0.01 \
+	--reg_sub 0.1 \
 	--reg_glob 0.05 \
 	--order 1 \
 	--length 5 \
