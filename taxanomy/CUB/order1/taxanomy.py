@@ -165,10 +165,7 @@ T3 = {
     ]
 }
 
-T4 = python
-
-Copy
-taxonomy = {
+T4 = {
     "Albatrosses": [
         "Black_footed_Albatross", "Laysan_Albatross", "Sooty_Albatross"
     ],
@@ -404,10 +401,7 @@ T5 = {"Albatrosses": [
     ]
 }
 
-T6 = python
-
-Copy
-taxonomy = {
+T6 = {
     "Albatrosses": [
         "Black_footed_Albatross", "Laysan_Albatross", "Sooty_Albatross"
     ],
@@ -564,10 +558,7 @@ taxonomy = {
     ]
 }
 
-T7 = python
-
-Copy
-taxonomy = {
+T7 = {
     "Albatrosses": [
         "Black_footed_Albatross", "Laysan_Albatross", "Sooty_Albatross"
     ],
@@ -922,10 +913,7 @@ T8 = {
     ]
 }
 
-T9 = python
-
-Copy
-taxonomy = {
+T9 = {
     "Albatrosses": [
         "Black_footed_Albatross", "Laysan_Albatross", "Sooty_Albatross"
     ],
@@ -1116,10 +1104,7 @@ taxonomy = {
     ]
 }
 
-T10 = python
-
-Copy
-taxonomy = {
+T10 = {
     "Albatrosses": [
         "Black_footed_Albatross", "Laysan_Albatross", "Sooty_Albatross"
     ],
