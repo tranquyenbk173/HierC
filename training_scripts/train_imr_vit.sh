@@ -62,12 +62,12 @@
 # Get the job ID
 
 # Set variables
-reg=0.5
-reg_sub=0.0
+reg=0.8
+reg_sub=0.4
 reg_glob=0.0
 prompt_momentum=0.00001
 lr=0.03
-port='29618'
+port='29601'
 
 
 # Ensure the output directory exists
@@ -76,7 +76,7 @@ mkdir -p "output/output_all"
 # Correct the output file path
 output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}.txt"
 
-{
+# {
     for seed in 42
     do
         CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch \
@@ -104,6 +104,6 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --trained_original_model ./output/imr_vit_multi_centroid_mlp_2_seed$seed \
             --output_dir ./output/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}
     done
-} > "$output_file" 2>&1
+# } > "$output_file" 2>&1
 
-echo "Output has been saved to $output_file"
+# echo "Output has been saved to $output_file"
