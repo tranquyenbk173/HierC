@@ -1,8 +1,9 @@
 #!/bin/bash
 
 for seed in 42 
+do
 CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
-        --nproc_per_node=4 \
+        --nproc_per_node=1 \
         --use_env main.py \
         five_datasets_hideprompt_5e \
         --original_model vit_base_patch16_224 \
@@ -20,7 +21,7 @@ done
 for seed in 42
 do
 CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
-        --nproc_per_node=4 \
+        --nproc_per_node=1 \
         --use_env main.py \
         five_datasets_hideprompt_5e \
         --original_model vit_base_patch16_224 \
