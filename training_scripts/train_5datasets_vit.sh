@@ -1,27 +1,27 @@
 #!/bin/bash
 
-for seed in 42 40 44
+for seed in 42 
 do
-python -m torch.distributed.launch \
-        --nproc_per_node=4 \
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
+        --nproc_per_node=1 \
         --use_env main.py \
         five_datasets_hideprompt_5e \
         --original_model vit_base_patch16_224 \
         --model vit_base_patch16_224 \
         --batch-size 32 \
-        --data-path ./datasets \
+        --data-path ../Z.Data \
         --output_dir ./output/5datasets_vit_multi_centroid_mlp_2_seed$seed \
         --epochs 20 \
         --sched constant \
         --seed $seed \
         --train_inference_task_only \
-        --lr 0.001 \
+        --lr 0.001 
 done
 
-for seed in 42 40 44
+for seed in 42
 do
-python -m torch.distributed.launch \
-        --nproc_per_node=4 \
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
+        --nproc_per_node=1 \
         --use_env main.py \
         five_datasets_hideprompt_5e \
         --original_model vit_base_patch16_224 \
