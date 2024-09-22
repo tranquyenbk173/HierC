@@ -23,6 +23,7 @@ reg_sub=0.1
 reg_glob=0.05
 prompt_momentum=0.0001
 lr=0.03
+ca_lr=0.05
 
 for seed in 422
 do
@@ -37,7 +38,7 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
 	--epochs 50 \
 	--data-path ../Z.Data/ \
 	--lr $lr \
-	--ca_lr 0.005 \
+	--ca_lr $ca_lr \
 	--crct_epochs 30 \
 	--seed $seed \
 	--prompt_momentum $prompt_momentum \

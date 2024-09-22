@@ -63,11 +63,12 @@
 
 # Set variables
 reg=0.8
-reg_sub=0.4
+reg_sub=0.1
 reg_glob=0.0
 prompt_momentum=0.00001
 lr=0.03
-port='29601'
+ca_lr=0.05
+port='29604'
 
 
 # Ensure the output directory exists
@@ -76,10 +77,10 @@ mkdir -p "output/output_all"
 # Correct the output file path
 output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}.txt"
 
-# {
+{
     for seed in 42
     do
-        CUDA_VISIBLE_DEVICES=4 python -m torch.distributed.launch \
+        CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
             --nproc_per_node=1 \
             --master_port=$port \
             --use_env main.py \
@@ -90,7 +91,7 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --epochs 150 \
             --data-path ./datasets \
             --lr $lr \
-            --ca_lr 0.005 \
+            --ca_lr $ca_lr \
             --crct_epochs 30 \
             --sched cosine \
             --seed $seed \
@@ -104,6 +105,6 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --trained_original_model ./output/imr_vit_multi_centroid_mlp_2_seed$seed \
             --output_dir ./output/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}
     done
-# } > "$output_file" 2>&1
+} > "$output_file" 2>&1
 
 # echo "Output has been saved to $output_file"
