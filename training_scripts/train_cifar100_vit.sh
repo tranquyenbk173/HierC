@@ -24,12 +24,21 @@ reg_glob=0.05
 prompt_momentum=0.0001
 lr=0.03
 ca_lr=0.05
+port='29503'
+
+# Ensure the output directory exists
+mkdir -p "output/output_all"
+
+# Correct the output file path
+output_file="./output/output_all/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}.txt"
+
+{
 
 for seed in 422
 do
 CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
 	--nproc_per_node=1 \
-	--master_port='29503' \
+	--master_port=$port \
 	--use_env main.py \
 	cifar100_hideprompt_5e \
 	--model vit_base_patch16_224 \
@@ -50,5 +59,9 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
 	--sched step \
 	--larger_prompt_lr \
 	--trained_original_model ./output/cifar100_sup21k_multi_centroid_mlp_2_seed42 \
-	--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}
+	--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}
 done
+
+} > "$output_file" 2>&1
+
+echo "Output has been saved to $output_file"
