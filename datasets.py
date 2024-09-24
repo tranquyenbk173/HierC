@@ -141,7 +141,10 @@ def build_continual_dataloader(args):
 
                 sampler_val = torch.utils.data.SequentialSampler(dataset_val_cls)
             else:
-                sampler_train = torch.utils.data.RandomSampler(dataset_train_cls)
+                try: 
+                    sampler_train = torch.utils.data.RandomSampler(dataset_train_cls)
+                except:
+                    print('Missins', cls_id)
                 sampler_val = torch.utils.data.SequentialSampler(dataset_val_cls)
 
             data_loader_train_cls = torch.utils.data.DataLoader(
@@ -185,8 +188,17 @@ def get_dataset(dataset, transform_train, transform_val, args, target_transform=
         dataset_val = SVHN(args.data_path, split='test', download=True, transform=transform_val)
 
     elif dataset == 'NotMNIST':
+        import pickle
+        # print('data_path', args.data_path)
         dataset_train = NotMNIST(args.data_path, train=True, download=True, transform=transform_train)
         dataset_val = NotMNIST(args.data_path, train=False, download=True, transform=transform_val)
+        # dataset_train = pickle.load(open('../Z.Data/Five_data/notmnist/notmnist_train.pkl',  'rb')) #NotMNIST(args.data_path, train=True, download=True, transform=transform_train)
+        # dataset_val = pickle.load(open('../Z.Data/Five_data/notmnist/notmnist_test.pkl', 'rb')) #NotMNIST(args.data_path, train=False, download=True, transform=transform_val)
+        # print(dataset_val)
+        # dataset_train['classes'] = dataset_train['targets'] = dataset_train['labels']
+        # dataset_val['classes'] = dataset_val['targets'] = dataset_val['labels']
+        # print(dataset_val)
+        # exit()
 
     elif dataset == 'Flower102':
         dataset_train = Flowers102(args.data_path, split='train', download=True, transform=transform_train)
