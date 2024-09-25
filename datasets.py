@@ -141,10 +141,10 @@ def build_continual_dataloader(args):
 
                 sampler_val = torch.utils.data.SequentialSampler(dataset_val_cls)
             else:
-                try: 
-                    sampler_train = torch.utils.data.RandomSampler(dataset_train_cls)
-                except:
-                    print('Missins', cls_id)
+                sampler_train = torch.utils.data.RandomSampler(dataset_train_cls)
+                #except:
+                    #print('Missins', cls_id)
+                    #exit()
                 sampler_val = torch.utils.data.SequentialSampler(dataset_val_cls)
 
             data_loader_train_cls = torch.utils.data.DataLoader(
