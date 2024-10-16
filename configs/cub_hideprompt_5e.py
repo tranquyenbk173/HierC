@@ -156,3 +156,7 @@ def get_args_parser(subparsers):
     
     # Misc parameters
     subparsers.add_argument('--print_freq', type=int, default=10, help='The frequency of printing')
+
+    # OT trick:
+    subparsers.add_argument('--OT_trick', default=1, type=int)
+    subparsers.add_argument('--delta', default=100, type=float)

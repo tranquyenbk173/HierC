@@ -21,7 +21,7 @@ from torch import optim
 import utils
 import tree_e
 from torch.distributions.multivariate_normal import MultivariateNormal
-
+import ot
 
 def train_one_epoch(model: torch.nn.Module, original_model: torch.nn.Module,
                     criterion, data_loader: Iterable, optimizer: torch.optim.Optimizer,
@@ -230,12 +230,19 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
     cls_mean = dict()
     cls_cov = dict()
     
+    global org_cls_mean
+    global org_cls_cov
+    org_cls_mean = dict()
+    org_cls_cov = dict()
+    
     global old_data
     global old_labels
     old_data = torch.empty(0).to(device)
     old_labels = torch.empty(0).to(device)
     
     global current_llist
+    global WSDMatrix
+    WSDMatrix = torch.zeros(size=(args.nb_classes, args.nb_classes)) # computed on the original latent space
     
     if args.dataset == 'Split-CIFAR100':
         if args.order == 1:
@@ -285,6 +292,9 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
                 return
         # if model already trained
         checkpoint_path = os.path.join(args.output_dir, 'checkpoint/task{}_checkpoint.pth'.format(task_id + 1))
+        
+        _compute_mean_org(original_model=original_model, data_loader=data_loader_per_cls, device=device, task_id=task_id,
+                      class_mask=class_mask[task_id], args=args)
         
         # Transfer previous learned prompt params to the new prompt
         if args.prompt_pool and args.shared_prompt_pool:
@@ -400,6 +410,56 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
                       'a') as f:
                 f.write(json.dumps(log_stats) + '\n')
 
+@torch.no_grad()
+def _compute_mean_org(original_model: torch.nn.Module, data_loader: Iterable, device: torch.device, task_id, class_mask=None, args=None, ):
+    original_model.eval()
+
+    print('Computing means......', len(class_mask), class_mask)
+    for cls_id in class_mask:
+        data_loader_cls = data_loader[cls_id]['train']
+        features_per_cls = []
+        for i, (inputs, targets) in enumerate(data_loader_cls):
+            inputs = inputs.to(device, non_blocking=True)
+            features = original_model(inputs)['pre_logits']
+            # print(features.shape)
+            features_per_cls.append(features)
+        features_per_cls = torch.cat(features_per_cls, dim=0)
+        features_per_cls_list = [torch.zeros_like(features_per_cls, device=device) for _ in range(args.world_size)]
+
+        dist.barrier()
+        dist.all_gather(features_per_cls_list, features_per_cls)
+
+        if args.ca_storage_efficient_method == 'covariance':
+            features_per_cls = torch.cat(features_per_cls_list, dim=0)
+            # print(features_per_cls.shape)
+            org_cls_mean[cls_id] = features_per_cls.mean(dim=0)
+            org_cls_cov[cls_id] = torch.cov(features_per_cls.T) + (torch.eye(cls_mean[cls_id].shape[-1]) * 1e-4).to(device)
+        
+        if args.ca_storage_efficient_method == 'variance':
+            features_per_cls = torch.cat(features_per_cls_list, dim=0)
+            # print(features_per_cls.shape)
+            org_cls_mean[cls_id] = features_per_cls.mean(dim=0)
+            org_cls_cov[cls_id] = torch.diag(torch.cov(features_per_cls.T) + (torch.eye(cls_mean[cls_id].shape[-1]) * 1e-4).to(device))
+        if args.ca_storage_efficient_method == 'multi-centroid':
+            from sklearn.cluster import KMeans
+            n_clusters = args.n_centroids
+            features_per_cls = torch.cat(features_per_cls_list, dim=0).cpu().numpy()
+            kmeans = KMeans(n_clusters=n_clusters)
+            kmeans.fit(features_per_cls)
+            cluster_lables = kmeans.labels_
+            cluster_means = []
+            cluster_vars = []
+            for i in range(n_clusters):
+               cluster_data = features_per_cls[cluster_lables == i]
+               cluster_mean = torch.tensor(np.mean(cluster_data, axis=0), dtype=torch.float64).to(device)
+               cluster_var = torch.tensor(np.var(cluster_data, axis=0), dtype=torch.float64).to(device)
+               cluster_means.append(cluster_mean)
+               cluster_vars.append(cluster_var)
+            
+            org_cls_mean[cls_id] = cluster_means
+            org_cls_cov[cls_id] = cluster_vars
+            
+    update_WSM(args)
 
 @torch.no_grad()
 def _compute_mean(model: torch.nn.Module, data_loader: Iterable, device: torch.device, task_id, class_mask=None,
@@ -448,6 +508,75 @@ def _compute_mean(model: torch.nn.Module, data_loader: Iterable, device: torch.d
             
             cls_mean[cls_id] = cluster_means
             cls_cov[cls_id] = cluster_vars
+            
+    # update_WSM(args)
+            
+# OT-based stuffs:
+@torch.no_grad()
+def update_WSM(args):
+    n = len(org_cls_mean)
+    class_ids = org_cls_mean.keys()
+    for i in class_ids:
+        for j in class_ids:
+            if WSDMatrix[i][j] != 0:
+                continue 
+            else:
+                # WSDMatrix[i][j] = wsd_gmm_d(org_cls_mean[i], org_cls_mean[j], org_cls_cov[i], org_cls_cov[j], args)
+                WSDMatrix[i][j] = wsd_gmm_s(org_cls_mean[i], org_cls_mean[j], org_cls_cov[i], org_cls_cov[j], args) 
+                WSDMatrix[j][i] = WSDMatrix[i][j]
+                
+    print(WSDMatrix.max())
+    return
+
+def gaussian_wasserstein(mean1, cov1, mean2, cov2):
+    delta_mean = mean1 - mean2
+    cov_sqrt = torch.linalg.sqrtm(cov1 @ cov2)
+    
+    if torch.is_complex(cov_sqrt):
+        cov_sqrt = cov_sqrt.real
+    
+    distance = torch.dot(delta_mean, delta_mean)
+    distance += torch.trace(cov1 + cov2 - 2 * cov_sqrt)
+    return torch.sqrt(distance)
+
+def wsd_gmm_d(means1, means2, covs1, covs2, args):
+    total_distance = 0.0
+    for i in range(len(means1)):
+        for j in range(len(means2)):
+            distance = gaussian_wasserstein(means1[i], covs1[i], means2[j], covs2[j])
+            total_distance += distance
+    return total_distance/(len(means1)*len(means2)*1.)
+
+def wsd_gmm_s(means1, means2, covs1 ,covs2, args):
+
+    # Sample from the GMMs
+    num_sampled_pcls = args.batch_size * 5
+    samples1 = gmm_sample(means1, covs1, num_sampled_pcls)
+    samples2 = gmm_sample(means2, covs2, num_sampled_pcls)
+
+    # Compute pairwise distance matrix
+    M = ot.dist(samples1.cpu().numpy(), samples2.cpu().numpy())
+    a = np.ones((samples1.shape[0],)) / samples1.shape[0]
+    b = np.ones((samples2.shape[0],)) / samples2.shape[0]
+
+    # Compute optimal transport plan and Wasserstein distance
+    wasserstein_distance = ot.emd2(a, b, M)
+    
+    return wasserstein_distance
+
+def gmm_sample(means1, covs1, num_sampled_pcls):
+    sampled_data = []
+    for cluster in range(len(means1)):
+        mean = means1[cluster]
+        var = covs1[cluster]
+        if var.mean() == 0:
+            continue
+        m = MultivariateNormal(mean.float(), (torch.diag(var) + 1e-4 * torch.eye(mean.shape[0]).to(mean.device)).float())
+        sampled_data_single = m.sample(sample_shape=(num_sampled_pcls,))
+        sampled_data.append(sampled_data_single)
+        
+    sampled_data = torch.cat(sampled_data, dim=0).float().cuda()
+    return sampled_data
 
 
 def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_mask=None, task_id=-1):
@@ -595,12 +724,31 @@ def orth_loss(features, targets, device, args):
         # return 0.
         
 
-def supervised_contrastive_loss(features, labels, temperature=0.1):
+def supervised_contrastive_loss(features, labels, temperature=0.1, Gamma=None):
     # Normalize features
     features = F.normalize(features, p=2, dim=1)
     
+    if Gamma != None:
+        n_sample = len(features)
+        weight_matrix = torch.zeros((n_sample, n_sample)).to(features.device)
+        labelZ = labels.long()
+        for i in range(n_sample):
+            for j in range(n_sample):
+                if weight_matrix[i][j] != 0:
+                    continue
+                weight_matrix[i][j] = Gamma[labelZ[i], labelZ[j]]
+                weight_matrix[j][i] = weight_matrix[i][j]
+            
+    # print(weight_matrix)
+    # exit()
+        weight_matrix = weight_matrix.detach()
+    else:
+        n_sample = len(features)
+        weight_matrix = torch.ones((n_sample, n_sample)).detach().to(features.device)
+    
     # Compute similarity matrix
     sim_matrix = torch.matmul(features, features.t()) / temperature
+    sim_matrix = sim_matrix * weight_matrix
     
     # Mask to remove self-comparisons
     mask = torch.eye(labels.size(0), dtype=torch.bool, device=features.device)
@@ -622,7 +770,7 @@ def supervised_contrastive_loss(features, labels, temperature=0.1):
     
     return loss
 
-def subsup_loss(features, labels, label_sets, temperature=0.1):
+def subsup_loss(features, labels, label_sets, temperature=0.1, args=None):
     total_loss = 0.0
     num_sets = len(label_sets)
     
@@ -632,9 +780,14 @@ def subsup_loss(features, labels, label_sets, temperature=0.1):
         subset_features = features[mask]
         subset_labels = labels[mask]
         
+        if args.OT_trick:
+            Gamma = 1 / np.exp(WSDMatrix / args.delta).to(features.device)
+        else:
+            Gamma = torch.ones((args.nb_classes, args.nb_classes)).to(features.device)
+        
         # Compute the supervised contrastive loss for the subset
         if len(subset_features) > 1:
-            loss = supervised_contrastive_loss(subset_features, subset_labels, temperature)
+            loss = supervised_contrastive_loss(subset_features, subset_labels, temperature, Gamma)
             total_loss += loss
 
     return total_loss / num_sets
@@ -651,7 +804,7 @@ def cluster_loss(features, targets, device, args):
     features = torch.cat((features, old_inputs), dim=0)
     targets = torch.cat((targets, old_targets), dim=0)
     
-    sub_loss = subsup_loss(features,  targets, current_llist)
+    sub_loss = subsup_loss(features,  targets, current_llist, args=args)
     glob_loss =  supervised_contrastive_loss(features, targets)
         
     return args.reg_glob * glob_loss + args.reg_sub * sub_loss
