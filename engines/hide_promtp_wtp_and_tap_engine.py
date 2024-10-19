@@ -23,6 +23,9 @@ import tree_e
 from torch.distributions.multivariate_normal import MultivariateNormal
 import ot
 
+global mapG
+mapG = None
+
 def train_one_epoch(model: torch.nn.Module, original_model: torch.nn.Module,
                     criterion, data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, max_norm: float = 0,
@@ -110,7 +113,7 @@ def train_one_epoch(model: torch.nn.Module, original_model: torch.nn.Module,
 
 @torch.no_grad()
 def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loader,
-             device, i=-1, task_id=-1, class_mask=None, target_task_map=None, args=None, ):
+             device, i=-1, task_id=-1, class_mask=None, target_task_map=None, args=None, eval_trick=False):
     criterion = torch.nn.CrossEntropyLoss()
 
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -146,6 +149,7 @@ def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loade
                     raise NotImplementedError("original model is None")
 
             output = model(input, task_id=task_id, prompt_id=prompt_id)
+            features = output['features']
             logits = output['logits']
             promtp_idx = output['prompt_idx']  # tensor B x topk
 
@@ -156,6 +160,20 @@ def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loade
                 logits_mask = torch.ones_like(logits, device=device) * float('-inf')
                 logits_mask = logits_mask.index_fill(1, mask, 0.0)
                 logits = logits + logits_mask
+
+        
+            # For eval trick: 
+            if eval_trick:
+                MHD = MHD_cls(features, device, args)
+                # print('MHD', MHD.argmin(dim=1))
+                if mapG == None:
+                    create_number_to_sublist_map(args.G)
+
+                energy = process_MHD(MHD, logits, args)
+                # print('energy', energy.shape, energy.argmax(dim=1))
+                # print('logits', logits.argmax(dim=1))
+                # print('target', target)
+                logits = energy
 
             loss = criterion(logits, target)
 
@@ -180,13 +198,13 @@ def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loade
 
 @torch.no_grad()
 def evaluate_till_now(model: torch.nn.Module, original_model: torch.nn.Module, data_loader,
-                      device, task_id=-1, class_mask=None, target_task_map=None, acc_matrix=None, args=None, ):
+                      device, task_id=-1, class_mask=None, target_task_map=None, acc_matrix=None, args=None, eval_trick=False):
     stat_matrix = np.zeros((4, args.num_tasks))  # 3 for Acc@1, Acc@5, Loss
 
     for i in range(task_id + 1):
         test_stats = evaluate(model=model, original_model=original_model, data_loader=data_loader[i]['val'],
                               device=device, i=i, task_id=task_id, class_mask=class_mask, target_task_map=target_task_map,
-                              args=args)
+                              args=args, eval_trick=eval_trick)
 
         stat_matrix[0, i] = test_stats['Acc@1']
         stat_matrix[1, i] = test_stats['Acc@5']
@@ -243,6 +261,10 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
     global current_llist
     global WSDMatrix
     WSDMatrix = torch.zeros(size=(args.nb_classes, args.nb_classes)) # computed on the original latent space
+    
+    global WSDMatrix_eval
+    WSDMatrix_eval = torch.zeros(size=(args.nb_classes, args.nb_classes)) # computed on the original latent space
+    
     
     if args.dataset == 'Split-CIFAR100':
         if args.order == 1:
@@ -394,6 +416,10 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
                 'model': model_without_ddp.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'args': args,
+                'WSD_matrix': WSDMatrix_eval,
+                'current_llist': current_llist,
+                'cls_mean': cls_mean,
+                'cls_cov': cls_cov,
             }
             if args.sched is not None and args.sched != 'constant':
                 state_dict['lr_scheduler'] = lr_scheduler.state_dict()
@@ -509,7 +535,7 @@ def _compute_mean(model: torch.nn.Module, data_loader: Iterable, device: torch.d
             cls_mean[cls_id] = cluster_means
             cls_cov[cls_id] = cluster_vars
             
-    # update_WSM(args)
+    update_WSM_eval(args)
             
 # OT-based stuffs:
 @torch.no_grad()
@@ -526,6 +552,22 @@ def update_WSM(args):
                 WSDMatrix[j][i] = WSDMatrix[i][j]
                 
     print(WSDMatrix.max())
+    return
+
+@torch.no_grad()
+def update_WSM_eval(args):
+    n = len(cls_mean)
+    class_ids = cls_mean.keys()
+    for i in class_ids:
+        for j in class_ids:
+            if WSDMatrix_eval[i][j] != 0:
+                continue 
+            else:
+                # WSDMatrix[i][j] = wsd_gmm_d(org_cls_mean[i], org_cls_mean[j], org_cls_cov[i], org_cls_cov[j], args)
+                WSDMatrix_eval[i][j] = wsd_gmm_s(cls_mean[i], cls_mean[j], cls_cov[i], cls_cov[j], args) 
+                WSDMatrix_eval[j][i] = WSDMatrix_eval[i][j]
+                
+    print(WSDMatrix_eval.max())
     return
 
 def gaussian_wasserstein(mean1, cov1, mean2, cov2):
@@ -577,7 +619,6 @@ def gmm_sample(means1, covs1, num_sampled_pcls):
         
     sampled_data = torch.cat(sampled_data, dim=0).float().cuda()
     return sampled_data
-
 
 def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_mask=None, task_id=-1):
     model.train()
@@ -687,9 +728,6 @@ def train_task_adaptive_prediction(model: torch.nn.Module, args, device, class_m
 
             optimizer.zero_grad()
             loss.backward()
-            #for name, p in model.named_parameters():
-            #    if p.requires_grad and p.grad is None:
-            #        print(name)
             optimizer.step()
             torch.cuda.synchronize()
 
@@ -723,7 +761,6 @@ def orth_loss(features, targets, device, args):
         return args.reg * loss
         # return 0.
         
-
 def supervised_contrastive_loss(features, labels, temperature=0.1, Gamma=None):
     # Normalize features
     features = F.normalize(features, p=2, dim=1)
@@ -739,8 +776,7 @@ def supervised_contrastive_loss(features, labels, temperature=0.1, Gamma=None):
                 weight_matrix[i][j] = Gamma[labelZ[i], labelZ[j]]
                 weight_matrix[j][i] = weight_matrix[i][j]
             
-    # print(weight_matrix)
-    # exit()
+
         weight_matrix = weight_matrix.detach()
     else:
         n_sample = len(features)
@@ -808,5 +844,111 @@ def cluster_loss(features, targets, device, args):
     glob_loss =  supervised_contrastive_loss(features, targets)
         
     return args.reg_glob * glob_loss + args.reg_sub * sub_loss
+
+
+## For testing... 
+def mahalanobis_distance(x, mean, cov, args):
+    mean, cov = mean.cuda(), cov.cuda()
+    cov_inv = torch.inverse(cov)
+    diff = x - mean
+    return torch.sqrt(torch.sum((diff @ cov_inv) * diff, dim=1))
+
+def distance_to_gmm(x, means, covariances, args):
+    distances = 0
+    n = len(means)
+    for i, (mean, cov) in enumerate(zip(means, covariances)):
+        if True:
+            cov = torch.diag(cov) #+ 1e-4 * torch.eye(mean.shape[0]).to(mean.device).float()
+        distance = mahalanobis_distance(x, mean, cov,  args)
+        # weighted_distance = weightdistance
+        # print(distance)
+        # exit()
+        distances += distance
+        # print(i, distances)
         
+    # print(distances, n)
+    # exit()
+    return distances/n*1.0
+
+def MHD_cls(features, device, args):
+    n = len(args.clsMean)
+    keys = args.clsMean.keys()
+    distance = torch.ones((features.shape[0], args.nb_classes))*1e12
+    if args.ca_storage_efficient_method in ['covariance', 'variance']:
+        for c_id in keys:
+            mean = torch.tensor(args.clsMean[c_id], dtype=torch.float64).to(device)
+            cov = args.clsCov[c_id].to(device)
+            if args.ca_storage_efficient_method == 'variance':
+                cov = torch.diag(cov)
+            dis = mahalanobis_distance(features, mean, cov, args)
+            distance[:, c_id] = dis.reshape(distance[:, c_id].shape)
+
+    elif args.ca_storage_efficient_method == 'multi-centroid':
+        for c_id in keys:
+            means = args.clsMean[c_id]
+            covs = args.clsCov[c_id]
+            dis = distance_to_gmm(features, means, covs, args)
+            # print(dis)
+            distance[:, c_id] = dis.reshape(distance[:, c_id].shape)
+            # print('----')
+            # print(distance)
+            
+    else:
+            raise NotImplementedError
+        
+    # print(distance)
+    # exit()
+    return distance
+
+def create_number_to_sublist_map(list_of_lists):
+    number_map = {}
+    for index, sublist in enumerate(list_of_lists):
+        for number in sublist:
+            number_map[number] = index
+    
+    mapG = number_map
+
+def process_MHD(distance, logits, args):
+    W_MHDs = args.W_Matric
+    n = len(distance)
+    processed_score = torch.zeros(distance.shape).cuda()
+    print('G', args.G)
+    logits = logits.clone().detach()
+    A_filtered = range(args.nb_classes)
+    B = []
+    for g in args.G:
+        B += g
+    # print('B', B)
+    for i in range(n):
+        dis_i = distance[i].unsqueeze(1).cuda()
+        logit_i = logits[i].unsqueeze(1)
+        g_total = 0
+        g_nearest = 0
+        d_logits_max = -1e5
+        for g_list in args.G:
+            dis_ig = dis_i[torch.LongTensor(g_list)]
+            logit_ig = logit_i[torch.LongTensor(g_list)]
+            nearest_sim, nearest_label = torch.max(logit_ig, dim=0) #torch.max(dis_i[torch.LongTensor(g_list)])
+            nearest_label = g_list[nearest_label]
+            # print(nearest_sim, nearest_label, end='-')
+            map_w = W_MHDs[nearest_label][torch.LongTensor(g_list)].unsqueeze(0)
+            d = map_w.mm(dis_ig)
+            E_g = torch.exp(args.eta_0*nearest_sim - args.eta*d)
+            g_total += E_g
+            if nearest_sim > d_logits_max:
+                d_logits_max = nearest_sim
+                g_nearest = E_g
+            
+            # print(logit_i[torch.LongTensor(g_list)].unsqueeze(0))
+            logit_i[torch.LongTensor(g_list)] = logit_i[torch.LongTensor(g_list)]*g_nearest
+            # print(logit_i[torch.LongTensor(g_list)].unsqueeze(0)
+
+
+        logit_i = logit_i/ g_total
+        A_filtered = [item for item in A_filtered if item not in B]
+        logit_i[A_filtered] = logit_i[A_filtered] + float('-inf')
+
+        processed_score[i] = logit_i.reshape(processed_score[i].shape)
+    return processed_score
+
 

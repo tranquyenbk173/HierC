@@ -66,6 +66,7 @@ def train(args):
 
     if args.eval:
         acc_matrix = np.zeros((args.num_tasks, args.num_tasks))
+        evalTrick = False
 
         for task_id in range(args.num_tasks):
             checkpoint_path = os.path.join(args.output_dir, 'checkpoint/task{}_checkpoint.pth'.format(task_id + 1))
@@ -73,6 +74,15 @@ def train(args):
                 print('Loading checkpoint from:', checkpoint_path)
                 checkpoint = torch.load(checkpoint_path, map_location=device)
                 model.load_state_dict(checkpoint['model'])
+                args.WSDMatrix_old = checkpoint['WSD_matrix']
+                args.G = checkpoint['current_llist']
+                if args.WSDMatrix_old != None and args.eval_trick != 0:
+                    evalTrick = True
+                    args.WSDMatrix_old = args.WSDMatrix_old * (torch.ones(args.WSDMatrix_old.shape) - torch.eye(args.WSDMatrix_old.shape[0])).cuda() # standardize trick
+                    args.W_Matric =  1 / torch.exp(args.WSDMatrix_old / args.delta2).to(device)
+                
+                args.clsMean = checkpoint['cls_mean']
+                args.clsCov = checkpoint['cls_cov']
             else:
                 print('No checkpoint found at:', checkpoint_path)
                 return
@@ -86,7 +96,7 @@ def train(args):
                 print('No checkpoint found at:', original_checkpoint_path)
                 return
             _ = evaluate_till_now(model, original_model, data_loader, device,
-                                  task_id, class_mask, target_task_map, acc_matrix, args, )
+                    task_id, class_mask, target_task_map, acc_matrix, args, eval_trick=evalTrick)
 
         return
 
@@ -131,6 +141,4 @@ def train(args):
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print(f"Total training time: {total_time_str}")
-
-    
 
