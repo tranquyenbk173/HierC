@@ -160,3 +160,9 @@ def get_args_parser(subparsers):
     # OT trick:
     subparsers.add_argument('--OT_trick', default=1, type=int)
     subparsers.add_argument('--delta', default=100, type=float)
+        
+    # Eval trick:
+    subparsers.add_argument('--eval_trick', default=1, type=int)
+    subparsers.add_argument('--eta', default=0.03, type=float)
+    subparsers.add_argument('--eta_0', default=0.07, type=float)
+    subparsers.add_argument('--delta2', default=15, type=float)

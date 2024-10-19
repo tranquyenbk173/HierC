@@ -1,16 +1,16 @@
-#!/bin/bash
+# #!/bin/bash
 
 # for seed in 42
 # do
-# python -m torch.distributed.launch \
+# CUDA_VISIBLE_DEVICES=1,3 python -m torch.distributed.launch \
 #         --nproc_per_node=1 \
 #         --use_env main.py \
 #         cifar100_hideprompt_5e \
-#         --original_model vit_base_patch16_224 \
-#         --model vit_base_patch16_224 \
+#         --original_model vit_base_patch16_224_dino \
+#         --model vit_base_patch16_224_dino \
 #         --batch-size 24 \
 #         --data-path ../Z.Data/ \
-#         --output_dir ./output/cifar100_sup21k_multi_centroid_mlp_2_seed$seed \
+#         --output_dir ./output/cifar100_dino_multi_centroid_mlp_2_seed$seed \
 #         --epochs 20 \
 #         --sched constant \
 #         --seed $seed \
@@ -18,25 +18,27 @@
 #         --lr 0.0005 
 # done
 
-reg=0.01
-reg_sub=0.1
-reg_glob=0.05
+reg=0.1
+reg_sub=0.0
+reg_glob=0.0
 prompt_momentum=0.0001
 lr=0.03
 ca_lr=0.05
-port='29503'
+OT=1
+delta=100
+port='29512'
 
 # Ensure the output directory exists
 mkdir -p "output/output_all"
 
 # Correct the output file path
-output_file="./output/output_all/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}.txt"
+output_file="./output/output_all/Eval_cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}.txt"
 
 {
 
 for seed in 422
 do
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
+CUDA_VISIBLE_DEVICES=1,3 python -m torch.distributed.launch \
 	--nproc_per_node=1 \
 	--master_port=$port \
 	--use_env main.py \
@@ -59,9 +61,12 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch \
 	--sched step \
 	--larger_prompt_lr \
 	--trained_original_model ./output/cifar100_sup21k_multi_centroid_mlp_2_seed42 \
-	--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}
+	--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta} \
+	# --eval \
+
 done
 
 } > "$output_file" 2>&1
 
 echo "Output has been saved to $output_file"
+

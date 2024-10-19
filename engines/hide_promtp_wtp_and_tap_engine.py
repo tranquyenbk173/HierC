@@ -912,13 +912,11 @@ def process_MHD(distance, logits, args):
     W_MHDs = args.W_Matric
     n = len(distance)
     processed_score = torch.zeros(distance.shape).cuda()
-    print('G', args.G)
     logits = logits.clone().detach()
     A_filtered = range(args.nb_classes)
     B = []
     for g in args.G:
         B += g
-    # print('B', B)
     for i in range(n):
         dis_i = distance[i].unsqueeze(1).cuda()
         logit_i = logits[i].unsqueeze(1)

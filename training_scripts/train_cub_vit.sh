@@ -26,13 +26,15 @@ reg_glob=0.0
 prompt_momentum=0.0001
 lr=0.03
 ca_lr=0.005
+OT=1
+delta=100
 port='29608'
 
 # Ensure the output directory exists
 mkdir -p "output/output_all"
 
 # Correct the output file path
-output_file="./output/output_all/cub_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}.txt"
+output_file="./output/output_all/cub_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}.txt"
 
 {
 
@@ -59,7 +61,8 @@ CUDA_VISIBLE_DEVICES=2 python -m torch.distributed.launch \
     --order 1 \
 	--length 20 \
 	--trained_original_model ./output/cub_vit_multi_centroid_mlp_2_seed$seed \
-	--output_dir ./output/cub_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}
+	--output_dir ./output/cub_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta} \
+	# --eval 
 done
 
 } > "$output_file" 2>&1
