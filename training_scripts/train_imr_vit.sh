@@ -17,7 +17,7 @@
 #         --crct_epochs 30 \
 #         --seed $seed \
 #         --train_inference_task_only \
-#         --output_dir ./output/imr_dino_vit_multi_centroid_mlp_2_seed$seed
+#         --output_dir ./output/imr_sup21k_vit_multi_centroid_mlp_2_seed$seed
 # done
 
 # Set variables
@@ -44,8 +44,8 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --master_port=$port \
             --use_env main.py \
             imr_hideprompt_5e \
-            --model vit_base_patch16_224_dino \
-            --original_model vit_base_patch16_224_dino \
+            --model vit_base_patch16_224 \
+            --original_model vit_base_patch16_224 \
             --batch-size 24 \
             --epochs 150 \
             --data-path ./datasets \
@@ -61,7 +61,7 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --order 1 \
             --length 20 \
             --larger_prompt_lr \
-            --trained_original_model ./output/imr_dino_vit_multi_centroid_mlp_2_seed$seed \
+            --trained_original_model ./output/imr_sup21k_vit_multi_centroid_mlp_2_seed$seed \
             --output_dir ./output/imr_dino_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta} \
             # --eval 
     done
