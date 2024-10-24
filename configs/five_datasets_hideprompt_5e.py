@@ -136,11 +136,11 @@ def get_args_parser(subparsers):
 
     subparsers.add_argument('--separated_head', action='store_true')
     subparsers.add_argument('--crct_epochs', default=30, type=int)
-    subparsers.add_argument('--ca_lr', default=0.005, type=float)
+    subparsers.add_argument('--ca_lr', default=0.05, type=float)
     subparsers.add_argument('--milestones', default=[15], type=int)
     subparsers.add_argument('--weight_decay', default=5e-4, type=float)
     subparsers.add_argument('--reg', default=0, type=float)
-    subparsers.add_argument('--prompt_momentum', default=0, type=float)
+    subparsers.add_argument('--prompt_momentum', default=0.0001, type=float)
     subparsers.add_argument('--not_train_ca', action='store_true')
     subparsers.add_argument('--train_inference_task_only', action='store_true')
     subparsers.add_argument('--original_model_mlp_structure', default=[4, 4], type=int, nargs='*')

@@ -19,13 +19,14 @@ CUDA_VISIBLE_DEVICES=6 python -m torch.distributed.launch \
 done
 
 reg=0.01
-reg_sub=0.0
-reg_glob=0.0
-prompt_momentum=0.0001
-lr=0.03
-ca_lr=0.05
-OT=1
+reg_sub=0.25
+reg_glob=0.015
+
+OT=0
 delta=100
+eval_trick=0
+eta=0.02
+delta2=15
 port='29609'
 
 # Ensure the output directory exists
@@ -61,7 +62,13 @@ CUDA_VISIBLE_DEVICES=3 python -m torch.distributed.launch \
         --seed $seed \
         --larger_prompt_lr \
         --trained_original_model ./output/5datasets_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}
-        # --eval \ 
+        --OT_trick $OT \
+	--delta $delta \
+	--eval \
+	--eval_trick $eval_trick \
+	--eta $eta \
+	--eta_0 1 \
+	--delta2 $delta2 \
 done
 } > "$output_file" 2>&1
 

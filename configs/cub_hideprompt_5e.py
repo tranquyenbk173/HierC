@@ -141,11 +141,11 @@ def get_args_parser(subparsers):
     subparsers.add_argument('--train_inference_task_only', action='store_true')
     subparsers.add_argument('--original_model_mlp_structure', default=[2], type=int, nargs='*',
                             help='mlp structure of original model')
-    subparsers.add_argument('--ca_lr', default=0.005, type=float)
+    subparsers.add_argument('--ca_lr', default=0.05, type=float)
     subparsers.add_argument('--weight_decay', default=5e-4, type=float)
     subparsers.add_argument('--milestones', default=[10], type=int)
     subparsers.add_argument('--trained_original_model', default='', type=str)
-    subparsers.add_argument('--prompt_momentum', default=0, type=float)
+    subparsers.add_argument('--prompt_momentum', default=0.0001, type=float)
     subparsers.add_argument('--reg', default=0.01, type=float)
     subparsers.add_argument('--reg_glob', default=0.01, type=float)
     subparsers.add_argument('--reg_sub', default=0.01, type=float)

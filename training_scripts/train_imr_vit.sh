@@ -21,12 +21,15 @@
 # done
 
 # Set variables
-reg=0.5
-reg_sub=0.0
-reg_glob=0.0
-prompt_momentum=0.00001
-lr=0.03
-ca_lr=0.05
+reg=0.6
+reg_sub=0.015
+reg_glob=0.002
+
+OT=0
+delta=100
+eval_trick=0
+eta=0.02
+delta2=15
 port='29605'
 
 
@@ -34,7 +37,9 @@ port='29605'
 mkdir -p "output/output_all"
 
 # Correct the output file path
+# output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}.txt"
 output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}.txt"
+
 
 {
     for seed in 42
@@ -63,7 +68,13 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --larger_prompt_lr \
             --trained_original_model ./output/imr_sup21k_vit_multi_centroid_mlp_2_seed$seed \
             --output_dir ./output/imr_dino_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta} \
-            # --eval 
+            --OT_trick $OT \
+            --delta $delta \
+            --eval \
+            --eval_trick $eval_trick \
+            --eta $eta \
+            --eta_0 1 \
+            --delta2 $delta2 \
     done
 } > "$output_file" 2>&1
 
