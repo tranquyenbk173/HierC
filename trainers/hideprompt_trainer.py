@@ -69,6 +69,8 @@ def train(args):
         evalTrick = False
 
         for task_id in range(args.num_tasks):
+            if task_id < args.num_tasks - 1:
+                continue
             checkpoint_path = os.path.join(args.output_dir, 'checkpoint/task{}_checkpoint.pth'.format(task_id + 1))
             if os.path.exists(checkpoint_path):
                 print('Loading checkpoint from:', checkpoint_path)

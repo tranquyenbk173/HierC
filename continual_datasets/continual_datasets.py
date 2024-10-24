@@ -117,6 +117,7 @@ class NotMNIST(MNIST_RGB):
         self.transform = transform
         self.target_transform=target_transform
         self.train = train
+        self.classes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
         self.url = 'https://github.com/facebookresearch/Adversarial-Continual-Learning/raw/main/data/notMNIST.zip'
         self.filename = 'notMNIST.zip'
@@ -178,6 +179,9 @@ class NotMNIST(MNIST_RGB):
 
         if self.target_transform is not None:
             target = self.target_transform(target)
+            # print(self.targets)
+            # print('leuleu')
+            # exit()
 
         return img, target
 
