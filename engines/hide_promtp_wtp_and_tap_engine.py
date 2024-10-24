@@ -170,9 +170,18 @@ def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loade
                     create_number_to_sublist_map(args.G)
 
                 energy = process_MHD(MHD, logits, args)
-                # print('energy', energy.shape, energy.argmax(dim=1))
                 # print('logits', logits.argmax(dim=1))
+                # print('energy', energy.argmax(dim=1))
+                # if not torch.equal(energy.argmax(dim=1), logits.argmax(dim=1)):
+                    # print(logits)
+                    # print('#logits', logits[13])
+                    # print('#energy', energy[13])
+                    # print('target', target)
+                    # exit()
+                    
                 # print('target', target)
+                # print('-'*30)
+                # exit()
                 logits = energy
 
             loss = criterion(logits, target)
@@ -849,26 +858,24 @@ def cluster_loss(features, targets, device, args):
 ## For testing... 
 def mahalanobis_distance(x, mean, cov, args):
     mean, cov = mean.cuda(), cov.cuda()
-    cov_inv = torch.inverse(cov)
+    cov_inv = torch.inverse(cov + (1e-6)*torch.eye(cov.shape[0]).cuda() )
     diff = x - mean
     return torch.sqrt(torch.sum((diff @ cov_inv) * diff, dim=1))
 
 def distance_to_gmm(x, means, covariances, args):
-    distances = 0
+    distances = torch.empty(0).cuda()
     n = len(means)
     for i, (mean, cov) in enumerate(zip(means, covariances)):
         if True:
             cov = torch.diag(cov) #+ 1e-4 * torch.eye(mean.shape[0]).to(mean.device).float()
         distance = mahalanobis_distance(x, mean, cov,  args)
-        # weighted_distance = weightdistance
-        # print(distance)
-        # exit()
-        distances += distance
-        # print(i, distances)
+        # print(distance.shape)
+        distances = torch.cat((distances, distance.unsqueeze(1)), dim=1)
         
-    # print(distances, n)
+    distances = distances.min(dim=1)[0]
+    # print(distances)
     # exit()
-    return distances/n*1.0
+    return distances
 
 def MHD_cls(features, device, args):
     n = len(args.clsMean)
@@ -888,16 +895,11 @@ def MHD_cls(features, device, args):
             means = args.clsMean[c_id]
             covs = args.clsCov[c_id]
             dis = distance_to_gmm(features, means, covs, args)
-            # print(dis)
             distance[:, c_id] = dis.reshape(distance[:, c_id].shape)
-            # print('----')
-            # print(distance)
             
     else:
             raise NotImplementedError
         
-    # print(distance)
-    # exit()
     return distance
 
 def create_number_to_sublist_map(list_of_lists):
@@ -928,17 +930,16 @@ def process_MHD(distance, logits, args):
             logit_ig = logit_i[torch.LongTensor(g_list)]
             nearest_sim, nearest_label = torch.max(logit_ig, dim=0) #torch.max(dis_i[torch.LongTensor(g_list)])
             nearest_label = g_list[nearest_label]
-            # print(nearest_sim, nearest_label, end='-')
             map_w = W_MHDs[nearest_label][torch.LongTensor(g_list)].unsqueeze(0)
             d = map_w.mm(dis_ig)
             E_g = torch.exp(args.eta_0*nearest_sim - args.eta*d)
             g_total += E_g
-            if nearest_sim > d_logits_max:
-                d_logits_max = nearest_sim
-                g_nearest = E_g
+            # if nearest_sim > d_logits_max:
+                # d_logits_max = nearest_sim
+                # g_nearest = E_g
             
             # print(logit_i[torch.LongTensor(g_list)].unsqueeze(0))
-            logit_i[torch.LongTensor(g_list)] = logit_i[torch.LongTensor(g_list)]*g_nearest
+            logit_i[torch.LongTensor(g_list)] = logit_i[torch.LongTensor(g_list)]*E_g
             # print(logit_i[torch.LongTensor(g_list)].unsqueeze(0)
 
 
