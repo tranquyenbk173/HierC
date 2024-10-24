@@ -20,7 +20,6 @@
 #         --output_dir ./output/cub_vit_multi_centroid_mlp_2_seed$seed 
 # done
 
-reg=0.08
 reg_sub=0.25
 reg_glob=0.02
 
@@ -52,12 +51,8 @@ CUDA_VISIBLE_DEVICES=2 python -m torch.distributed.launch \
 	--batch-size 24 \
 	--epochs 50 \
 	--data-path ../Z.Data/ \
-    --lr $lr \
-	--ca_lr $ca_lr \
 	--crct_epochs 30 \
 	--seed $seed \
-	--prompt_momentum $prompt_momentum \
-	--reg $reg \
 	--reg_sub $reg_sub \
 	--reg_glob $reg_glob \
     --order 1 \

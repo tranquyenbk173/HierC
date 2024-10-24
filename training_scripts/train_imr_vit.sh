@@ -21,7 +21,6 @@
 # done
 
 # Set variables
-reg=0.6
 reg_sub=0.015
 reg_glob=0.002
 
@@ -54,13 +53,9 @@ output_file="./output/output_all/imr_vit_pe_seed${seed}-reg${reg}-regsub${reg_su
             --batch-size 24 \
             --epochs 150 \
             --data-path ./datasets \
-            --lr $lr \
-            --ca_lr $ca_lr \
             --crct_epochs 30 \
             --sched cosine \
             --seed $seed \
-            --prompt_momentum $prompt_momentum \
-            --reg $reg \
             --reg_sub $reg_sub \
             --reg_glob $reg_glob \
             --order 1 \

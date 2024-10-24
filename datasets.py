@@ -60,13 +60,15 @@ def build_continual_dataloader(args):
         splited_dataset_per_cls = split_single_class_dataset(dataset_train_mean, dataset_val_mean, class_mask, args)
     else:
         if args.dataset == '5-datasets':
-            dataset_list = ['SVHN', 'MNIST', 'CIFAR10', 'NotMNIST', 'FashionMNIST']
+            # dataset_list = ['SVHN', 'MNIST', 'CIFAR10', 'NotMNIST', 'FashionMNIST']
+            dataset_list = ['NotMNIST', 'SVHN', 'CIFAR10', 'FashionMNIST', 'MNIST']
         else:
             dataset_list = args.dataset.split(',')
 
         if args.shuffle:
             random.shuffle(dataset_list)
-        print(dataset_list)
+        print('dataset_list', dataset_list)
+        # exit()
 
         args.nb_classes = 0
         splited_dataset_per_cls = {}
@@ -81,6 +83,8 @@ def build_continual_dataloader(args):
                 transform_val = build_cifar_transform(False, args)
             dataset_train, dataset_val = get_dataset(dataset_list[i], transform_train, transform_val, args)
             dataset_train_mean, dataset_val_mean = get_dataset(dataset_list[i], transform_val, transform_val, args)
+            
+            print("dataset_train labels:", dataset_list[i], dataset_train.classes)
 
             transform_target = Lambda(target_transform, args.nb_classes)
 
@@ -95,8 +99,6 @@ def build_continual_dataloader(args):
                 dataset_val.target_transform = transform_target
                 dataset_train_mean.target_transform = transform_target
                 dataset_val_mean.target_transform = transform_target
-
-            # print(class_mask[i])
 
             splited_dataset_per_cls.update(split_single_class_dataset(dataset_train_mean, dataset_val_mean, [class_mask[i]], args))
 
@@ -131,7 +133,7 @@ def build_continual_dataloader(args):
     for i in range(len(class_mask)):
         for cls_id in class_mask[i]:
             dataset_train_cls, dataset_val_cls = splited_dataset_per_cls[cls_id]
-
+            # print(len(dataset_train_cls), len(dataset_val_cls), cls_id)
             if args.distributed and utils.get_world_size() > 1:
                 num_tasks = utils.get_world_size()
                 global_rank = utils.get_rank()
@@ -142,9 +144,6 @@ def build_continual_dataloader(args):
                 sampler_val = torch.utils.data.SequentialSampler(dataset_val_cls)
             else:
                 sampler_train = torch.utils.data.RandomSampler(dataset_train_cls)
-                #except:
-                    #print('Missins', cls_id)
-                    #exit()
                 sampler_val = torch.utils.data.SequentialSampler(dataset_val_cls)
 
             data_loader_train_cls = torch.utils.data.DataLoader(
@@ -234,8 +233,6 @@ def get_dataset(dataset, transform_train, transform_val, args, target_transform=
 
 
 def split_single_dataset(dataset_train, dataset_val, args):
-    # print(dataset_train.label)
-    # exit()
     nb_classes = len(dataset_val.classes)
     # TODO
     # assert nb_classes % args.num_tasks == 0
@@ -246,10 +243,9 @@ def split_single_dataset(dataset_train, dataset_val, args):
     split_datasets = list()
     mask = list()
 
-    # print(args.shuffle)
-    # exit()
     if args.shuffle:
         random.shuffle(labels)
+    print(labels)
 
     target_task_map = {}
 
@@ -293,21 +289,16 @@ def split_single_dataset(dataset_train, dataset_val, args):
 
         split_datasets.append([subset_train, subset_val])
         
-    # print('mask', mask)
-    # # print('target_task_map', target_task_map)
-    # exit()
-
     return split_datasets, mask, target_task_map
 
 
 def split_single_class_dataset(dataset_train, dataset_val, mask, args):
     nb_classes = len(dataset_val.classes)
-    print(nb_classes)
     split_datasets = dict()
     print(mask)
+    # offset = args.nb_classes - nb_classes
     for i in range(len(mask)):
         single_task_labels = mask[i]
-        # print(single_task_labels)
 
         # if args.dataset.startswith('Split-'):
         #     cls_ids = single_task_labels
@@ -316,20 +307,27 @@ def split_single_class_dataset(dataset_train, dataset_val, mask, args):
         for cls_id in single_task_labels:
             train_split_indices = []
             test_split_indices = []
-
+            
             for k in range(len(dataset_train.targets)):
+                # if int(dataset_train.targets[k] + offset) == cls_id:
                 if int(dataset_train.targets[k]) == cls_id:
                     train_split_indices.append(k)
-            # print(len(train_split_indices))
 
             for h in range(len(dataset_val.targets)):
-                if int(dataset_val.targets[h]) == cls_id:
+                # if int(dataset_val.targets[h] + offset) == cls_id:
+                if int(dataset_train.targets[k]) == cls_id:
                     test_split_indices.append(h)
+                    
 
             subset_train, subset_val = Subset(dataset_train, train_split_indices), Subset(dataset_val,
                                                                                           test_split_indices)
 
             split_datasets[cls_id] = [subset_train, subset_val]
+            
+            
+            if len(subset_train) == 0:
+                # print(cls_id, len(subset_train), len(subset_val))
+                exit()
 
     return split_datasets
 

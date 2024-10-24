@@ -18,7 +18,6 @@
 #         --lr 0.0005 
 # done
 
-reg=0.3
 reg_sub=0.01
 reg_glob=0.001
 
@@ -50,12 +49,8 @@ do
 		--batch-size 24 \
 		--epochs 50 \
 		--data-path ../Z.Data/ \
-		--lr $lr \
-		--ca_lr $ca_lr \
 		--crct_epochs 30 \
 		--seed $seed \
-		--prompt_momentum $prompt_momentum \
-		--reg $reg \
 		--reg_sub $reg_sub \
 		--reg_glob $reg_glob \
 		--order 1 \
@@ -66,11 +61,11 @@ do
 		--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta} \
 		--OT_trick $OT \
 		--delta $delta \
-		--eval \
-		--eval_trick $eval_trick \
-		--eta $eta \
-		--eta_0 1 \
-		--delta2 $delta2 \
+		# --eval \
+		# --eval_trick $eval_trick \
+		# --eta $eta \
+		# --eta_0 1 \
+		# --delta2 $delta2 
 
 done
 

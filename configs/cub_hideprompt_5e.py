@@ -146,7 +146,7 @@ def get_args_parser(subparsers):
     subparsers.add_argument('--milestones', default=[10], type=int)
     subparsers.add_argument('--trained_original_model', default='', type=str)
     subparsers.add_argument('--prompt_momentum', default=0.0001, type=float)
-    subparsers.add_argument('--reg', default=0.01, type=float)
+    subparsers.add_argument('--reg', default=0.08, type=float)
     subparsers.add_argument('--reg_glob', default=0.01, type=float)
     subparsers.add_argument('--reg_sub', default=0.01, type=float)
     subparsers.add_argument('--order', default=1, type=int)

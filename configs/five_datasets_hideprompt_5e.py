@@ -70,7 +70,7 @@ def get_args_parser(subparsers):
     # Data parameters
     subparsers.add_argument('--data-path', default='/local_datasets/', type=str, help='dataset path')
     subparsers.add_argument('--dataset', default='5-datasets', type=str, help='dataset name')
-    subparsers.add_argument('--shuffle', default=True, help='shuffle the data order')
+    subparsers.add_argument('--shuffle', default=False, help='shuffle the data order')
     subparsers.add_argument('--output_dir', default='./output', help='path where to save, empty for no saving')
     subparsers.add_argument('--device', default='cuda', help='device to use for training / testing')
     subparsers.add_argument('--seed', default=42, type=int)
@@ -139,7 +139,7 @@ def get_args_parser(subparsers):
     subparsers.add_argument('--ca_lr', default=0.05, type=float)
     subparsers.add_argument('--milestones', default=[15], type=int)
     subparsers.add_argument('--weight_decay', default=5e-4, type=float)
-    subparsers.add_argument('--reg', default=0, type=float)
+    subparsers.add_argument('--reg', default=0.1, type=float)
     subparsers.add_argument('--prompt_momentum', default=0.0001, type=float)
     subparsers.add_argument('--not_train_ca', action='store_true')
     subparsers.add_argument('--train_inference_task_only', action='store_true')
