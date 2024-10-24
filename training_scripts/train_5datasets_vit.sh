@@ -32,7 +32,8 @@ port='29609'
 # mkdir -p "output/output_all"
 
 # # Correct the output file path
-# output_file="./output/output_all/5dataset_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}.txt"
+# output_file="./output/output_all/5dataset_vit_pe_seed${seed}-regsub${reg_sub}-regglob${reg_glob}-OT${OT}-delta${delta}.txt"
+output_file="./output/output_all/Eval_5dataset_vit_pe_seed${seed}-regsub${reg_sub}-regglob${reg_glob}-OT${OT}-delta${delta}_eval-trick${eval_trick}_eta${eta}_eta0${eta_0}_delta2${delta2}.txt"
 
 # {
 
@@ -59,7 +60,7 @@ port='29609'
 #         --trained_original_model ./output/5datasets_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}
 #         --OT_trick $OT \
 # 	--delta $delta \
-# 	# --eval \
+# 	--eval \
 # 	--eval_trick $eval_trick \
 # 	--eta $eta \
 # 	--eta_0 1 \

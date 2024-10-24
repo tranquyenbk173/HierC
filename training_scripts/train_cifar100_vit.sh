@@ -32,8 +32,8 @@ port='29524'
 mkdir -p "output/output_all"
 
 # Correct the output file path
-# output_file="./output/output_all/Eval_cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}_eta${eta}_eta0${eta_0}_delta2${delta2}.txt"
-output_file="./output/output_all/Eval_cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}_eta${eta}_eta0${eta_0}_delta2${delta2}-eta${eta}_eta0${eta_0}_delta2${delta2}.txt"
+# output_file="./output/output_all/cifar100_vit_pe_seed${seed}-regsub${reg_sub}-regglob${reg_glob}-OT${OT}-delta${delta}.txt"
+output_file="./output/output_all/Eval_cifar100_vit_pe_seed${seed}-regsub${reg_sub}-regglob${reg_glob}-OT${OT}-delta${delta}_eval-trick${eval_trick}_eta${eta}_eta0${eta_0}_delta2${delta2}.txt"
 
 # {
 
@@ -61,11 +61,11 @@ do
 		--output_dir ./output/cifar100_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta} \
 		--OT_trick $OT \
 		--delta $delta \
-		# --eval \
-		# --eval_trick $eval_trick \
-		# --eta $eta \
-		# --eta_0 1 \
-		# --delta2 $delta2 
+		--eval \
+		--eval_trick $eval_trick \
+		--eta $eta \
+		--eta_0 1 \
+		--delta2 $delta2 
 
 done
 

@@ -34,8 +34,8 @@ port='29611'
 mkdir -p "output/output_all"
 
 # Correct the output file path
-# output_file="./output/output_all/cub_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}.txt"
-output_file="./output/output_all/Eval_cub_vit_pe_seed${seed}-reg${reg}-regsub${reg_sub}-regglob${reg_glob}-prompt_momentum${prompt_momentum}-lr${lr}-calr${ca_lr}-OT${OT}-delta${delta}-eta${eta}_eta0${eta_0}_delta2${delta2}.txt"
+# output_file="./output/output_all/cub_vit_pe_seed${seed}-regsub${reg_sub}-regglob${reg_glob}-OT${OT}-delta${delta}.txt"
+output_file="./output/output_all/Eval_cub_vit_pe_seed${seed}-regsub${reg_sub}-regglob${reg_glob}-OT${OT}-delta${delta}_eval-trick${eval_trick}_eta${eta}_eta0${eta_0}_delta2${delta2}.txt"
 
 # {
 
@@ -65,7 +65,7 @@ CUDA_VISIBLE_DEVICES=2 python -m torch.distributed.launch \
 	--eval_trick $eval_trick \
 	--eta $eta \
 	--eta_0 1 \
-	--delta2 $delta2 \
+	--delta2 $delta2 
 done
 
 # } > "$output_file" 2>&1
