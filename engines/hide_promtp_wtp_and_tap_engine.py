@@ -249,6 +249,7 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
                        lr_scheduler,
                        device: torch.device,
                        class_mask=None, target_task_map=None, args=None, ):
+    
     # create matrix to save end-of-task accuracies
     acc_matrix = np.zeros((args.num_tasks, args.num_tasks))
     pre_ca_acc_matrix = np.zeros((args.num_tasks, args.num_tasks))
@@ -873,8 +874,7 @@ def distance_to_gmm(x, means, covariances, args):
         distances = torch.cat((distances, distance.unsqueeze(1)), dim=1)
         
     distances = distances.min(dim=1)[0]
-    # print(distances)
-    # exit()
+
     return distances
 
 def MHD_cls(features, device, args):
@@ -934,13 +934,7 @@ def process_MHD(distance, logits, args):
             d = map_w.mm(dis_ig)
             E_g = torch.exp(args.eta_0*nearest_sim - args.eta*d)
             g_total += E_g
-            # if nearest_sim > d_logits_max:
-                # d_logits_max = nearest_sim
-                # g_nearest = E_g
-            
-            # print(logit_i[torch.LongTensor(g_list)].unsqueeze(0))
             logit_i[torch.LongTensor(g_list)] = logit_i[torch.LongTensor(g_list)]*E_g
-            # print(logit_i[torch.LongTensor(g_list)].unsqueeze(0)
 
 
         logit_i = logit_i/ g_total
