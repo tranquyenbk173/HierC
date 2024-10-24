@@ -1,6 +1,6 @@
 ## Code for "Exploiting hierarchical taxonomy for prompt-based Continual Learning"
 
-### Reproduce the reported results with the scripts in training_scripts/
+### Reproduce the reported results with the scripts in `training_scripts/`
 
 #### Note:
   - If you want to try with other order of tasks/classes, you need to modify the content in the folder `taxanomy/` accordingly.
