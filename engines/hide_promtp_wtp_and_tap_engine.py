@@ -83,7 +83,7 @@ def train_one_epoch(model: torch.nn.Module, original_model: torch.nn.Module,
         # TODO add contrastive loss
         pre_logits = output['pre_logits']
         # pre_logits, pre_logits2 = torch.split(pre_logits, [bsz, bsz], dim=0)
-        loss += orth_loss(pre_logits, target, device, args)
+        loss += orth_loss(pre_logits, target, device, args) # robustness trick
         
         # TODO add cluster loss
         loss += cluster_loss(pre_logits, target, device, args)
