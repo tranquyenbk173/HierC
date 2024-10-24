@@ -285,6 +285,9 @@ def train_and_evaluate(model: torch.nn.Module, model_without_ddp: torch.nn.Modul
     elif args.dataset == 'Split-CUB200':
         if args.order == 1:
             import taxanomy.CUB.order1.taxanomy as taxonomy
+    elif args.dataset == '5-datasets':
+        if args.order == 1:
+            import taxanomy.FiveDataset.order1.taxanomy as taxonomy
     else:
         print('Have not been supported')   
         exit() 
