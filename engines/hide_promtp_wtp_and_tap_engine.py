@@ -144,7 +144,6 @@ def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loade
                     # translate cls to task_id
                     prompt_id = torch.tensor([target_task_map[v.item()] for v in prompt_id], device=device).unsqueeze(
                         -1)
-                    # print(prompt_id)
                 else:
                     raise NotImplementedError("original model is None")
 
@@ -165,23 +164,10 @@ def evaluate(model: torch.nn.Module, original_model: torch.nn.Module, data_loade
             # For eval trick: 
             if eval_trick:
                 MHD = MHD_cls(features, device, args)
-                # print('MHD', MHD.argmin(dim=1))
                 if mapG == None:
                     create_number_to_sublist_map(args.G)
 
                 energy = process_MHD(MHD, logits, args)
-                # print('logits', logits.argmax(dim=1))
-                # print('energy', energy.argmax(dim=1))
-                # if not torch.equal(energy.argmax(dim=1), logits.argmax(dim=1)):
-                    # print(logits)
-                    # print('#logits', logits[13])
-                    # print('#energy', energy[13])
-                    # print('target', target)
-                    # exit()
-                    
-                # print('target', target)
-                # print('-'*30)
-                # exit()
                 logits = energy
 
             loss = criterion(logits, target)
